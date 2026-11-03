@@ -1,0 +1,32 @@
+{
+ "hemibrain R": {
+  "geodesic distance KC->APL site to APL->KC site, random pairs (\u00b5m): median, 10%, 90%": [
+   187.0,
+   48.5,
+   431.6
+  ],
+  "nodes of the compressed tree": 16786,
+  "snap distance synapse to node, median (\u00b5m)": 0.4,
+  "two-pass vs brute force at 10 \u00b5m: max abs difference / max value": 3.37e-16
+ },
+ "malecns L": {
+  "geodesic distance KC->APL site to APL->KC site, random pairs (\u00b5m): median, 10%, 90%": [
+   234.2,
+   54.6,
+   365.3
+  ],
+  "nodes of the compressed tree": 6580,
+  "snap distance synapse to node, median (\u00b5m)": 0.79,
+  "two-pass vs brute force at 10 \u00b5m: max abs difference / max value": 3.83e-16
+ },
+ "malecns R": {
+  "geodesic distance KC->APL site to APL->KC site, random pairs (\u00b5m): median, 10%, 90%": [
+   155.3,
+   47.8,
+   290.3
+  ],
+  "nodes of the compressed tree": 5758,
+  "snap distance synapse to node, median (\u00b5m)": 0.79,
+  "two-pass vs brute force at 10 \u00b5m: max abs difference / max value": 3.64e-16
+ }
+}
