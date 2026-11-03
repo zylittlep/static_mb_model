@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>APL Synapse Project</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,600&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (about 68ch) with full-width figure bands; the report index is a true sequence 00-12, grouped in the project's three parts. */
+:root {
+  --paper: #f6f8f6;
+  --panel: #ffffff;
+  --ink: #15201c;
+  --muted: #56625d;
+  --rule: #dce2de;
+  --accent: #1d6b57;
+  --blocked: #c94f1c;   /* APL blocked / TNT, as in the reports */
+  --intact: #2a6fc4;    /* APL intact / TNT3c */
+  --geom: #7a4fb8;      /* APL geometry and local models */
+  --data: #6b706d;      /* synapse data */
+  --f-display: "Literata", Georgia, "Times New Roman", serif;
+  --f-body: "Source Sans 3", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #111614; --panel: #18201d; --ink: #e5ebe8; --muted: #9ba8a2; --rule: #2a3430;
+    --accent: #5cc4a4; --blocked: #f08a5d; --intact: #6fa8ef; --geom: #b493e6; --data: #a3a8a5;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #111614; --panel: #18201d; --ink: #e5ebe8; --muted: #9ba8a2; --rule: #2a3430;
+  --accent: #5cc4a4; --blocked: #f08a5d; --intact: #6fa8ef; --geom: #b493e6; --data: #a3a8a5;
+  color-scheme: dark;
+}
+body {
+  background: var(--paper); color: var(--ink);
+  font: 400 17px/1.6 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 64px;
+}
+.wrap { max-width: 760px; margin: 0 auto; display: grid; gap: 48px; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 600; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2rem, 5vw, 2.8rem); line-height: 1.1; }
+h2 { font-size: 1.55rem; line-height: 1.2; }
+h3 { font-size: 1.1rem; line-height: 1.3; font-weight: 500; }
+p { margin: 0; max-width: 68ch; }
+a { color: var(--accent); text-underline-offset: 2px; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+.mono { font-family: var(--f-mono); font-size: 0.86em; }
+.eyebrow { font: 500 0.78rem/1.2 var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+section { display: grid; gap: 16px; }
+header { display: grid; gap: 16px; padding-bottom: 32px; border-bottom: 1px solid var(--rule); }
+.lede { font-size: 1.15rem; color: var(--ink); }
+.meta { color: var(--muted); font-size: 0.95rem; }
+.tnt { color: var(--blocked); font-weight: 600; }
+.tnt3c { color: var(--intact); font-weight: 600; }
+
+/* findings */
+.findings { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.findings li { display: grid; grid-template-columns: 9.5rem 1fr; gap: 16px; padding-top: 14px; border-top: 1px solid var(--rule); }
+.findings li > span { font: 500 0.8rem/1.5 var(--f-mono); color: var(--muted); padding-top: 3px; }
+.findings li > p { min-width: 0; }
+.bottomline { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 20px 22px; display: grid; gap: 8px; }
+
+/* report index */
+.part { display: grid; gap: 4px; }
+.part-head { display: flex; align-items: baseline; gap: 10px; margin-top: 8px; }
+.part-head .swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; transform: translateY(1px); }
+.reports { list-style: none; margin: 0; padding: 0; }
+.reports li { border-top: 1px solid var(--rule); }
+.reports a { display: grid; grid-template-columns: 3rem 1fr; gap: 12px; padding: 12px 0; color: inherit; text-decoration: none; }
+.reports a:hover .rt, .reports a:focus-visible .rt { color: var(--accent); text-decoration: underline; }
+.reports .num { font: 500 1.05rem/1.4 var(--f-mono); font-variant-numeric: tabular-nums; }
+.reports .rt { font-weight: 600; display: block; }
+.reports .rs { color: var(--muted); font-size: 0.95rem; display: block; }
+.reports div { min-width: 0; }
+
+/* figure */
+figure { margin: 0; display: grid; gap: 10px; }
+figure img { width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 4px; background: #fff; }
+figcaption { color: var(--muted); font-size: 0.93rem; max-width: 68ch; }
+.links { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+
+/* data table */
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+th, td { text-align: left; padding: 8px 12px 8px 0; border-top: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: 0.85rem; }
+td.mono { white-space: nowrap; font-variant-numeric: tabular-nums; }
+ul.plain { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; max-width: 68ch; }
+footer { color: var(--muted); font-size: 0.9rem; border-top: 1px solid var(--rule); padding-top: 20px; }
+
+@media (max-width: 560px) {
+  body { font-size: 16px; padding-block: 28px 48px; }
+  .findings li { grid-template-columns: 1fr; gap: 4px; }
+  .reports a { grid-template-columns: 2.4rem 1fr; }
+}
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Drosophila mushroom body · calyx · 2026</div>
+  <h1>How APL is wired, and what blocking it does to the Kenyon cell odor code</h1>
+  <p class="lede">APL is the single large inhibitory neuron of each mushroom body. It receives input from Kenyon cells (KCs) and inhibits them and the projection neuron (PN) boutons. This project maps every APL synapse in four fly connectomes and asks whether that wiring explains how KC odor responses change when APL is blocked.</p>
+  <p class="meta">Recordings: Yang's KC imaging with APL blocked by tetanus toxin (<span class="tnt">TNT</span>) and the control with an inactive toxin (<span class="tnt3c">TNT3c</span>, APL intact). Odor input: Yang's ORN and GH146 PN imaging. Analysis and reports built with Claude.</p>
+</header>
+
+<section aria-labelledby="h-findings">
+  <h2 id="h-findings">Main findings</h2>
+  <ul class="findings">
+    <li><span>Wiring</span><p>KCs are APL's main partner in every connectome, and most KC↔APL synapses are in the lobes, not the calyx. In the calyx, APL↔PN synapses sit almost all on PN boutons, but only 18–27% of KC→APL and 30–49% of APL→KC synapses sit on KC claws (Report 02).</p></li>
+    <li><span>Off-claw synapses</span><p>Traced on ten male CNS KC skeletons, the off-claw calyx synapses sit on the shared dendritic trunk (30%), on claw stalks (21%) and on side branches without a claw (16%), a median 6 µm along the KC from the nearest PN input.</p></li>
+    <li><span>Recordings</span><p>With APL blocked, more KCs respond and every odor pair becomes more similar (mean change in cosine similarity 0.18). The order of odor-pair similarities also changes: Spearman ρ between <span class="tnt">TNT</span> and <span class="tnt3c">TNT3c</span> is 0.87, about 0.92 after correcting for noise (Reports 06, 09).</p></li>
+    <li><span>Global APL model</span><p>A KC model with uniform APL feedback, pinned to the recordings, predicts which odor pairs gain similarity (r = 0.46 with ORN input, 0.32 with GH146; the data's noise allows at most about 0.84). Its effect is about half the data's, and it keeps the rank order almost unchanged (ρ 0.97–0.98). Per-KC synapse counts and PN boutons do not beat shuffled wiring (Reports 05, 07, 08).</p></li>
+    <li><span>APL geometry</span><p>APL's calyx arbor splits into sub-arbors that join only through the peduncle and lobes. Along APL, microglomeruli in the same sub-arbor are 48–69 µm apart, those in different sub-arbors 215–356 µm (Report 10).</p></li>
+    <li><span>Local APL models</span><p>If inhibition fades along APL's skeleton (a non-spiking APL), short-range versions predict which pairs change better than a uniform APL (best r 0.58 with ORN input, 0.53 with GH146), and the real wiring beats within-class shuffles in 3 of 4 tests. The rank order still barely changes. Confining APL to its sub-arbors adds no reordering (Reports 11, 12).</p></li>
+  </ul>
+  <div class="bottomline">
+    <div class="eyebrow">Where it stands</div>
+    <p>APL feedback explains part of which odor pairs become more similar when APL is blocked, and local inhibition along APL's arbor explains more of that pattern. No version so far reproduces how strongly the recordings reorder odor pairs.</p>
+  </div>
+</section>
+
+<section aria-labelledby="h-reports">
+  <h2 id="h-reports">Step-by-step reports</h2>
+  <p>Each report states its question, inputs and outputs, defines every symbol, and explains each figure in its caption. Start with Report 00 for the roadmap and glossary; reports link to one another.</p>
+
+  <div class="part">
+    <div class="part-head"><span class="swatch" style="background: var(--data)"></span><h3>Synapse data</h3></div>
+    <ul class="reports">
+      <li><a href="reports/00_overview_and_glossary.html"><span class="num">00</span><div><span class="rt">Overview, roadmap and glossary</span><span class="rs">What was done in which order, and what every recurring term means.</span></div></a></li>
+      <li><a href="reports/01_connectome_synapse_tables.html"><span class="num">01</span><div><span class="rt">Connectome synapse tables</span><span class="rs">Every APL synapse in FlyWire, hemibrain, male CNS and BANC, with partner, region and compartment.</span></div></a></li>
+      <li><a href="reports/02_claws_boutons_calyx.html"><span class="num">02</span><div><span class="rt">Claws, boutons and the calyx</span><span class="rs">Finding claws and boutons, placing APL synapses on them, and the version that adds synapses outside the official ROIs.</span></div></a></li>
+      <li><a href="reports/03_odor_weighted_maps.html"><span class="num">03</span><div><span class="rt">Odor-weighted maps</span><span class="rs">ORN and GH146 responses attached to each APL synapse through its PN or claw.</span></div></a></li>
+    </ul>
+  </div>
+
+  <div class="part">
+    <div class="part-head"><span class="swatch" style="background: var(--intact)"></span><h3>Model and recordings</h3></div>
+    <ul class="reports">
+      <li><a href="reports/04_glomerulus_wiring.html"><span class="num">04</span><div><span class="rt">APL wiring per glomerulus</span><span class="rs">The bouton and claw weights the model uses.</span></div></a></li>
+      <li><a href="reports/05_APL_block_model.html"><span class="num">05</span><div><span class="rt">The APL block model</span><span class="rs">KC input from claws, a threshold, and APL feedback solved self-consistently, built step by step.</span></div></a></li>
+      <li><a href="reports/06_TNT_TNT3c_data.html"><span class="num">06</span><div><span class="rt">The TNT and TNT3c recordings</span><span class="rs">8 TNT and 11 TNT3c recordings, 16 odors; what blocking APL changes.</span></div></a></li>
+      <li><a href="reports/07_model_vs_TNT.html"><span class="num">07</span><div><span class="rt">Model pinned to the recordings</span><span class="rs">How well uniform and wiring-based APL feedback predict the change in odor-pair similarity.</span></div></a></li>
+      <li><a href="reports/08_why_feedback_is_uneven.html"><span class="num">08</span><div><span class="rt">Why the effect is uneven across odors</span><span class="rs">Feedback holds down odors that drive many KCs, so pairs of strong odors gain the most.</span></div></a></li>
+      <li><a href="reports/09_rank_order.html"><span class="num">09</span><div><span class="rt">Rank order of odor-pair similarity</span><span class="rs">When inhibition keeps the order of similarities, with toy simulations.</span></div></a></li>
+    </ul>
+  </div>
+
+  <div class="part">
+    <div class="part-head"><span class="swatch" style="background: var(--geom)"></span><h3>APL geometry and local models</h3></div>
+    <ul class="reports">
+      <li><a href="reports/10_APL_geodesic_distances.html"><span class="num">10</span><div><span class="rt">Distances along APL</span><span class="rs">Distances along APL's skeleton between glomeruli, and the calyx sub-arbors.</span></div></a></li>
+      <li><a href="reports/11_local_APL_model.html"><span class="num">11</span><div><span class="rt">A local, non-spiking APL</span><span class="rs">Inhibition that fades along the skeleton, on KCs and on PN boutons.</span></div></a></li>
+      <li><a href="reports/12_APL_sub_arbor_compartments.html"><span class="num">12</span><div><span class="rt">APL confined to its sub-arbors</span><span class="rs">No signal crossing between calyx sub-arbors.</span></div></a></li>
+    </ul>
+  </div>
+</section>
+
+<section aria-labelledby="h-kc">
+  <h2 id="h-kc">Where APL synapses sit on Kenyon cells</h2>
+  <p>Ten typical KCs from the right calyx of the male CNS, spread over the γ, α′β′ and αβ classes. Only the calyx part of each KC is drawn, on the calyx area. Pale orange marks calyx that the official calyx ROI leaves out and that the corrected calyx adds back.</p>
+  <figure>
+    <img src="kc_skeletons/KC_skeletons_APL_synapses_calyx.png" alt="Ten Kenyon cell skeletons in the calyx, each in a posterior and a side view, with KC to APL and APL to KC synapses colored by where they sit: on claw, claw stalk, dendritic trunk, or branch without claw." loading="lazy">
+    <figcaption>Circles: KC→APL synapses. Triangles: APL→KC. Color: on claw (green), claw stalk (ochre), dendritic trunk (purple), branch without claw (pink). A black outline marks a synapse outside the official ROIs. Gray dots and dashed rings: the KC's PN inputs and claws. Left of each pair: posterior view (fly's right to the right, dorsal up). Right: side view (anterior to the right).</figcaption>
+  </figure>
+  <div class="links">
+    <a href="kc_skeletons/KC_skeletons_APL_synapses_3D.html">Rotate them in 3D</a>
+    <a href="kc_skeletons/KC_skeletons_APL_synapses_overview.png">Whole KCs, lobes included</a>
+    <a href="kc_skeletons/KC_skeletons_APL_synapses_calyx.png">Calyx figure at full size</a>
+  </div>
+</section>
+
+<section aria-labelledby="h-data">
+  <h2 id="h-data">Data and conventions</h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th scope="col">Connectome</th><th scope="col">APL bodies used</th><th scope="col">In the model</th></tr></thead>
+      <tbody>
+        <tr><td>Hemibrain v1.2</td><td class="mono">425790257 (right)</td><td>Yes, right side</td></tr>
+        <tr><td>Male CNS v1.0</td><td class="mono">10977 (L)<br>10540 (R)</td><td>Yes, both sides</td></tr>
+        <tr><td>FlyWire 783</td><td class="mono">720575940624547622 (L)<br>720575940613583001 (R)</td><td>Synapse tables only</td></tr>
+        <tr><td>BANC 888</td><td class="mono">720575941734526507 (L)<br>720575941482622627 (R)</td><td>Synapse tables only</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <ul class="plain">
+    <li>Synaptic weight is the number of T-bar→PSD pairs, as neuPrint "weight" and FlyWire "syn_count".</li>
+    <li>Claws and boutons are clusters of synapse sites within 2 µm; an APL synapse is on a claw or bouton when it lies within 2 µm of one.</li>
+    <li>The male CNS calyx ROI misses the back of the calyx. Every analysis is kept in two versions: official ROIs only, and with synapses just outside the official ROIs added back (male CNS calyx +31%).</li>
+    <li>Each recording is treated as an independent hemisphere. Odor similarity is cosine similarity of population responses.</li>
+  </ul>
+</section>
+
+<footer>
+  <p>Reports dated 2026-10-23 to 2026-10-24; KC skeleton figures 2026-10-29. Public data: FlyWire, neuPrint hemibrain and male CNS releases, BANC.</p>
+</footer>
+
+</div>
