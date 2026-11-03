@@ -1,0 +1,146 @@
+{
+ "L": {
+  "ALPN->KC calyx synapses: n, share inside the ROI": [
+   192279,
+   0.8138
+  ],
+  "KC<->APL calyx synapses: n, share inside the ROI": [
+   41177,
+   0.6636
+  ],
+  "check: ROI volume lookup reproduces the release label (ALPN->KC, KC<->APL)": [
+   1.0,
+   1.0
+  ],
+  "best translation of the ROI (µm, x y z)": [
+   -3.0,
+   1.75,
+   2.25
+  ],
+  "share inside after the best translation (ALPN->KC, KC<->APL)": [
+   0.8624,
+   0.7615
+  ],
+  "best rotation (deg about x y z) + translation (µm), share inside (sample)": [
+   [
+    -2.0,
+    4.0,
+    2.0
+   ],
+   [
+    -3.0,
+    1.75,
+    2.25
+   ],
+   0.8509
+  ],
+  "ROI volume (µm3), share farther than 3 µm from every calyx synapse: as is, after the best translation": [
+   49032,
+   0.0205,
+   0.0923
+  ],
+  "outside synapses: distance to the ROI (µm) median, 90%, max": [
+   2.06,
+   5.5,
+   18.65
+  ],
+  "calyx front-back axis (unit vector, x y z; + = posterior)": [
+   -0.208,
+   -0.338,
+   0.918
+  ],
+  "position along that axis (µm from centre): inside median, outside median, outside share in the back third": [
+   -1.8,
+   9.7,
+   0.706
+  ],
+  "front-back extent (µm, 1st-99th pct along calyx axis; - anterior, + posterior): synapses": [
+   -16.2,
+   16.9
+  ],
+  "ROI": [
+   -16.2,
+   10.6
+  ],
+  "thickness front-back (µm): synapses, ROI": [
+   33.1,
+   26.8
+  ],
+  "volume (µm3): synapse cloud (1 µm voxels, closed 2 µm), ROI": [
+   59062,
+   49031
+  ]
+ },
+ "R": {
+  "ALPN->KC calyx synapses: n, share inside the ROI": [
+   198346,
+   0.9389
+  ],
+  "KC<->APL calyx synapses: n, share inside the ROI": [
+   34973,
+   0.8687
+  ],
+  "check: ROI volume lookup reproduces the release label (ALPN->KC, KC<->APL)": [
+   1.0,
+   1.0
+  ],
+  "best translation of the ROI (µm, x y z)": [
+   1.5,
+   0.5,
+   -1.0
+  ],
+  "share inside after the best translation (ALPN->KC, KC<->APL)": [
+   0.9473,
+   0.8727
+  ],
+  "best rotation (deg about x y z) + translation (µm), share inside (sample)": [
+   [
+    2.0,
+    0.0,
+    -8.0
+   ],
+   [
+    1.5,
+    0.5,
+    -1.0
+   ],
+   0.9421
+  ],
+  "ROI volume (µm3), share farther than 3 µm from every calyx synapse: as is, after the best translation": [
+   63004,
+   0.0262,
+   0.0512
+  ],
+  "outside synapses: distance to the ROI (µm) median, 90%, max": [
+   0.96,
+   2.94,
+   12.11
+  ],
+  "calyx front-back axis (unit vector, x y z; + = posterior)": [
+   0.271,
+   -0.344,
+   0.899
+  ],
+  "position along that axis (µm from centre): inside median, outside median, outside share in the back third": [
+   -0.1,
+   -6.5,
+   0.307
+  ],
+  "front-back extent (µm, 1st-99th pct along calyx axis; - anterior, + posterior): synapses": [
+   -15.2,
+   15.9
+  ],
+  "ROI": [
+   -14.9,
+   15.2
+  ],
+  "thickness front-back (µm): synapses, ROI": [
+   31.1,
+   30.1
+  ],
+  "volume (µm3): synapse cloud (1 µm voxels, closed 2 µm), ROI": [
+   59031,
+   63004
+  ]
+ }
+}

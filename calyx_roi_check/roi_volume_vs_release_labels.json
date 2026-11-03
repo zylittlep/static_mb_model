@@ -1,0 +1,23 @@
+{
+ "fullbrain-roi-v4": {
+  "official CA labels reproduced": 1.0,
+  "CentralBrain-unspecified points: volume label": {
+   "<none>": 5461
+  },
+  "all points: agreement with release label": 1.0
+ },
+ "fullbrain-roi-v4.1": {
+  "official CA labels reproduced": 1.0,
+  "CentralBrain-unspecified points: volume label": {
+   "<none>": 5461
+  },
+  "all points: agreement with release label": 1.0
+ },
+ "fullbrain-roi-v5": {
+  "official CA labels reproduced": 1.0,
+  "CentralBrain-unspecified points: volume label": {
+   "<none>": 5461
+  },
+  "all points: agreement with release label": 1.0
+ }
+}

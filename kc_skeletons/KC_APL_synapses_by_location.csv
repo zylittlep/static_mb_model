@@ -1,0 +1,11 @@
+kc_id,kc_type,claws,PN_to_KC_synapses,skeleton_length_um,calyx_skeleton_length_um,KC→APL on claw,KC→APL claw stalk,KC→APL dendritic trunk,KC→APL branch without claw,KC→APL peduncle,KC→APL lobes,APL→KC on claw,APL→KC claw stalk,APL→KC dendritic trunk,APL→KC branch without claw,APL→KC peduncle,APL→KC lobes,calyx synapses on claws (%),"all synapses, official ROIs only","all synapses, with outside-ROI",median snap to skeleton (µm)
+76587,KCg-m,10,126,759.9,255.5,2,1,10,0,6,51,2,0,8,1,5,41,16.7,93,127,0.53
+132312,KCg-m,8,124,735.7,268.3,2,6,1,2,5,39,1,2,3,7,4,35,12.5,91,107,0.55
+189047,KCg-m,9,148,753.5,255.9,1,1,6,0,7,51,12,5,0,1,9,42,50.0,123,135,0.57
+50057,KCa'b'-ap1,5,49,699.0,156.3,1,0,2,1,1,62,1,0,1,0,0,51,33.3,118,120,0.69
+80637,KCa'b'-ap2,7,72,710.0,163.7,4,0,1,1,2,45,5,0,2,0,4,57,69.2,118,121,0.64
+53448,KCa'b'-m,10,65,747.1,211.3,1,2,2,1,9,39,4,0,1,0,3,51,45.5,107,113,0.78
+71627,KCab-s,5,110,735.2,199.5,0,3,6,1,4,29,2,1,4,2,1,37,10.5,89,90,0.61
+166581,KCab-s,7,91,826.7,248.6,0,2,4,1,3,29,1,3,0,0,1,24,9.1,66,68,0.61
+92430,KCab-c,5,52,534.0,123.4,8,4,1,1,3,26,2,3,2,2,1,9,43.5,61,62,0.59
+157610,KCab-m,4,53,572.2,187.4,7,2,1,4,9,21,4,4,1,5,3,12,39.3,71,73,0.57
