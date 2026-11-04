@@ -1,0 +1,48 @@
+{
+ "flywire": {
+  "PN->KC nearest APL synapse, median nm": 1100.1,
+  "90th pct nm": 1794.8,
+  "PN->KC by side": {
+   "left": 204554,
+   "right": 173449
+  },
+  "APL->PN by side": {
+   "left": 2306,
+   "right": 2776
+  }
+ },
+ "hemibrain": {
+  "PN->KC nearest APL synapse, median nm": 983.0,
+  "90th pct nm": 1629.6,
+  "PN->KC by side": {
+   "right": 186159
+  },
+  "APL->PN by side": {
+   "right": 2902
+  }
+ },
+ "malecns": {
+  "PN->KC nearest APL synapse, median nm": 1111.0,
+  "90th pct nm": 1898.4,
+  "PN->KC by side": {
+   "left": 192279,
+   "right": 198346
+  },
+  "APL->PN by side": {
+   "left": 2571,
+   "right": 1936
+  }
+ },
+ "banc": {
+  "PN->KC nearest APL synapse, median nm": 1436.6,
+  "90th pct nm": 2769.1,
+  "PN->KC by side": {
+   "left": 81124,
+   "right": 87155
+  },
+  "APL->PN by side": {
+   "left": 662,
+   "right": 519
+  }
+ }
+}

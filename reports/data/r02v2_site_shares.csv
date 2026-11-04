@@ -1,0 +1,9 @@
+dataset,sites,n,share on a claw
+hemibrain,all calyx sites,309461,0.8382
+hemibrain,PN->KC PSDs,186280,0.9974
+hemibrain,other PSDs (non-PN partner),97223,0.6128
+hemibrain,KC T-bars,25958,0.5394
+malecns,all calyx sites,574907,0.8765
+malecns,PN->KC PSDs,390639,0.9988
+malecns,other PSDs (non-PN partner),138532,0.6187
+malecns,KC T-bars,45736,0.6129
