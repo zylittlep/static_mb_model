@@ -1,0 +1,132 @@
+{
+ "all right KCs": {
+  "KCs": 1901,
+  "calyx KC<->APL synapses": 34562,
+  "share by location (calyx)": {
+   "on claw": 0.612,
+   "dendritic trunk": 0.163,
+   "branch without claw": 0.124,
+   "claw stalk": 0.102
+  },
+  "share by location, KC->APL": {
+   "on claw": 0.572,
+   "dendritic trunk": 0.201,
+   "branch without claw": 0.118,
+   "claw stalk": 0.109
+  },
+  "share by location, APL->KC": {
+   "on claw": 0.65,
+   "branch without claw": 0.129,
+   "dendritic trunk": 0.126,
+   "claw stalk": 0.095
+  },
+  "off-claw share by location, per KC type": {
+   "KC": {
+    "branch without claw": 0.167,
+    "claw stalk": 0.0,
+    "dendritic trunk": 0.833
+   },
+   "KCa'b'-ap1": {
+    "branch without claw": 0.219,
+    "claw stalk": 0.248,
+    "dendritic trunk": 0.533
+   },
+   "KCa'b'-ap2": {
+    "branch without claw": 0.191,
+    "claw stalk": 0.381,
+    "dendritic trunk": 0.428
+   },
+   "KCa'b'-m": {
+    "branch without claw": 0.31,
+    "claw stalk": 0.388,
+    "dendritic trunk": 0.301
+   },
+   "KCab-c": {
+    "branch without claw": 0.262,
+    "claw stalk": 0.277,
+    "dendritic trunk": 0.461
+   },
+   "KCab-m": {
+    "branch without claw": 0.31,
+    "claw stalk": 0.277,
+    "dendritic trunk": 0.413
+   },
+   "KCab-p": {
+    "branch without claw": 0.712,
+    "claw stalk": 0.189,
+    "dendritic trunk": 0.098
+   },
+   "KCab-s": {
+    "branch without claw": 0.212,
+    "claw stalk": 0.304,
+    "dendritic trunk": 0.485
+   },
+   "KCg-d": {
+    "branch without claw": 0.568,
+    "claw stalk": 0.365,
+    "dendritic trunk": 0.068
+   },
+   "KCg-m": {
+    "branch without claw": 0.388,
+    "claw stalk": 0.215,
+    "dendritic trunk": 0.397
+   },
+   "KCg-s1": {
+    "branch without claw": 1.0,
+    "claw stalk": 0.0,
+    "dendritic trunk": 0.0
+   },
+   "KCg-s2": {
+    "branch without claw": 1.0,
+    "claw stalk": 0.0,
+    "dendritic trunk": 0.0
+   },
+   "KCg-s3": {
+    "branch without claw": 1.0,
+    "claw stalk": 0.0,
+    "dendritic trunk": 0.0
+   },
+   "KCg-s4": {
+    "branch without claw": 0.0,
+    "claw stalk": 0.556,
+    "dendritic trunk": 0.444
+   }
+  },
+  "off-claw: distance along the KC to the nearest PN->KC site (um), median / 90%": [
+   13.0,
+   24.7
+  ]
+ },
+ "KCs shown": 10,
+ "calyx KC<->APL synapses": 276,
+ "share by location (calyx)": {
+  "on claw": 0.467,
+  "dendritic trunk": 0.442,
+  "claw stalk": 0.062,
+  "branch without claw": 0.029
+ },
+ "share by location, KC->APL": {
+  "dendritic trunk": 0.49,
+  "on claw": 0.424,
+  "claw stalk": 0.066,
+  "branch without claw": 0.02
+ },
+ "share by location, APL->KC": {
+  "on claw": 0.52,
+  "dendritic trunk": 0.384,
+  "claw stalk": 0.056,
+  "branch without claw": 0.04
+ },
+ "off-claw: distance along the KC to the nearest PN->KC site (µm), median / 90%": [
+  14.8,
+  24.9
+ ],
+ "all KC<->APL synapses by region": {
+  "lobes": 672,
+  "on claw": 129,
+  "dendritic trunk": 122,
+  "peduncle": 69,
+  "claw stalk": 17,
+  "branch without claw": 8
+ }
+}
