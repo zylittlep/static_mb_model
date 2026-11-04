@@ -1,0 +1,59 @@
+{
+ "KCs": 1800,
+ "Prat KCs left out": 83,
+ "left out by subtype": {
+  "KC part due to gap": 73,
+  "KCab-p": 4,
+  "KCg-d": 4,
+  "KC(incomplete?)": 2
+ },
+ "left out with 0 claws in Prat": 7,
+ "means": {
+  "old": 8.2,
+  "new": 6.34,
+  "Prat": 6.66,
+  "Prat_before": 6.13
+ },
+ "agreement": [
+  {
+   "pair": "old vs Prat",
+   "r": 0.707,
+   "mean difference": 1.54,
+   "same count": 0.169,
+   "within 1": 0.459,
+   "within 2": 0.666
+  },
+  {
+   "pair": "new vs Prat",
+   "r": 0.887,
+   "mean difference": -0.33,
+   "same count": 0.383,
+   "within 1": 0.793,
+   "within 2": 0.946
+  },
+  {
+   "pair": "old vs Prat_before",
+   "r": 0.659,
+   "mean difference": 2.08,
+   "same count": 0.131,
+   "within 1": 0.387,
+   "within 2": 0.585
+  },
+  {
+   "pair": "new vs Prat_before",
+   "r": 0.813,
+   "mean difference": 0.21,
+   "same count": 0.295,
+   "within 1": 0.707,
+   "within 2": 0.901
+  },
+  {
+   "pair": "new vs old",
+   "r": 0.792,
+   "mean difference": -1.86,
+   "same count": 0.174,
+   "within 1": 0.464,
+   "within 2": 0.663
+  }
+ ]
+}

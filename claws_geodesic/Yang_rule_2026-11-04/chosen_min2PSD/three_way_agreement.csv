@@ -1,0 +1,6 @@
+pair,r,mean difference,same count,within 1,within 2
+old vs Prat,0.707,1.54,0.169,0.459,0.666
+new vs Prat,0.887,-0.33,0.383,0.793,0.946
+old vs Prat_before,0.659,2.08,0.131,0.387,0.585
+new vs Prat_before,0.813,0.21,0.295,0.707,0.901
+new vs old,0.792,-1.86,0.174,0.464,0.663

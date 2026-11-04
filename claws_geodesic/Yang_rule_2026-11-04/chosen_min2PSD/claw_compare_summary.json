@@ -1,0 +1,195 @@
+{
+ "main_new_version": "new v2, all sites, split by PN (PN claw >= 2 PSDs)",
+ "agreement_with_Prat_hemibrain": {
+  "old (2 µm, PN PSDs) vs Prat_n_claws": {
+   "r": 0.659,
+   "mean_diff": 2.08,
+   "exact": 0.131,
+   "within_1": 0.387
+  },
+  "old (2 µm, PN PSDs) vs Prat_n_claws_corrected": {
+   "r": 0.707,
+   "mean_diff": 1.54,
+   "exact": 0.169,
+   "within_1": 0.459
+  },
+  "new, all sites vs Prat_n_claws": {
+   "r": 0.672,
+   "mean_diff": -1.12,
+   "exact": 0.243,
+   "within_1": 0.591
+  },
+  "new, all sites vs Prat_n_claws_corrected": {
+   "r": 0.657,
+   "mean_diff": -1.66,
+   "exact": 0.222,
+   "within_1": 0.524
+  },
+  "new, all sites, recursive split vs Prat_n_claws": {
+   "r": 0.844,
+   "mean_diff": -0.34,
+   "exact": 0.328,
+   "within_1": 0.768
+  },
+  "new, all sites, recursive split vs Prat_n_claws_corrected": {
+   "r": 0.861,
+   "mean_diff": -0.88,
+   "exact": 0.291,
+   "within_1": 0.689
+  },
+  "new, PN PSDs vs Prat_n_claws": {
+   "r": 0.811,
+   "mean_diff": 0.13,
+   "exact": 0.288,
+   "within_1": 0.723
+  },
+  "new, PN PSDs vs Prat_n_claws_corrected": {
+   "r": 0.826,
+   "mean_diff": -0.41,
+   "exact": 0.261,
+   "within_1": 0.703
+  },
+  "new, PN PSDs, recursive split vs Prat_n_claws": {
+   "r": 0.812,
+   "mean_diff": 0.13,
+   "exact": 0.288,
+   "within_1": 0.723
+  },
+  "new, PN PSDs, recursive split vs Prat_n_claws_corrected": {
+   "r": 0.828,
+   "mean_diff": -0.4,
+   "exact": 0.261,
+   "within_1": 0.704
+  },
+  "new v2, all sites, split by PN (PN claw >= 1 PSD) vs Prat_n_claws": {
+   "r": 0.769,
+   "mean_diff": 1.17,
+   "exact": 0.202,
+   "within_1": 0.54
+  },
+  "new v2, all sites, split by PN (PN claw >= 1 PSD) vs Prat_n_claws_corrected": {
+   "r": 0.856,
+   "mean_diff": 0.63,
+   "exact": 0.279,
+   "within_1": 0.685
+  },
+  "new v2, all sites, split by PN (PN claw >= 2 PSDs) vs Prat_n_claws": {
+   "r": 0.813,
+   "mean_diff": 0.21,
+   "exact": 0.295,
+   "within_1": 0.707
+  },
+  "new v2, all sites, split by PN (PN claw >= 2 PSDs) vs Prat_n_claws_corrected": {
+   "r": 0.887,
+   "mean_diff": -0.33,
+   "exact": 0.383,
+   "within_1": 0.793
+  },
+  "new v2, all sites, split by PN (PN claw >= 3 PSDs) vs Prat_n_claws": {
+   "r": 0.822,
+   "mean_diff": 0.01,
+   "exact": 0.324,
+   "within_1": 0.726
+  },
+  "new v2, all sites, split by PN (PN claw >= 3 PSDs) vs Prat_n_claws_corrected": {
+   "r": 0.892,
+   "mean_diff": -0.52,
+   "exact": 0.401,
+   "within_1": 0.789
+  },
+  "new v2, all sites, split by PN (PN claw >= 5 PSDs) vs Prat_n_claws": {
+   "r": 0.841,
+   "mean_diff": -0.3,
+   "exact": 0.357,
+   "within_1": 0.768
+  },
+  "new v2, all sites, split by PN (PN claw >= 5 PSDs) vs Prat_n_claws_corrected": {
+   "r": 0.893,
+   "mean_diff": -0.84,
+   "exact": 0.393,
+   "within_1": 0.754
+  },
+  "new all sites, before split vs Prat_n_claws": {
+   "r": 0.519,
+   "mean_diff": -2.13,
+   "exact": 0.136,
+   "within_1": 0.395
+  },
+  "new all sites, before split vs Prat_n_claws_corrected": {
+   "r": 0.488,
+   "mean_diff": -2.67,
+   "exact": 0.114,
+   "within_1": 0.329
+  },
+  "new pn sites, before split vs Prat_n_claws": {
+   "r": 0.79,
+   "mean_diff": 0.01,
+   "exact": 0.271,
+   "within_1": 0.704
+  },
+  "new pn sites, before split vs Prat_n_claws_corrected": {
+   "r": 0.801,
+   "mean_diff": -0.53,
+   "exact": 0.248,
+   "within_1": 0.664
+  },
+  "old, claws with >=3 PN PSDs vs Prat_n_claws": {
+   "r": 0.77,
+   "mean_diff": 0.3,
+   "exact": 0.27,
+   "within_1": 0.638
+  },
+  "old, claws with >=3 PN PSDs vs Prat_n_claws_corrected": {
+   "r": 0.796,
+   "mean_diff": -0.23,
+   "exact": 0.281,
+   "within_1": 0.676
+  },
+  "old vs Prat_n_claws": {
+   "r": 0.659,
+   "mean_diff": 2.08,
+   "exact": 0.131,
+   "within_1": 0.387
+  },
+  "old vs Prat_n_claws_corrected": {
+   "r": 0.707,
+   "mean_diff": 1.54,
+   "exact": 0.169,
+   "within_1": 0.459
+  }
+ },
+ "KCs": {
+  "hemibrain R": 1800,
+  "male CNS L": 1886,
+  "male CNS R": 1908
+ },
+ "hemibrain KCs in Prat but not here": 83,
+ "hemibrain KCs here but not in Prat": 0,
+ "claws per KC mean (old, new) by MB": {
+  "hemibrain R": [
+   8.2,
+   6.34
+  ],
+  "male CNS L": [
+   7.49,
+   5.9
+  ],
+  "male CNS R": [
+   7.42,
+   5.79
+  ]
+ },
+ "claws from a split, share": 0.582,
+ "clusters before split (with PN input): share with >40 sites and a second PN >= 5 PSDs": 0.247,
+ "purity: PSD-weighted share of a claw's PN PSDs from its main PN (old, new)": [
+  0.951,
+  0.996
+ ],
+ "median ARI old vs new": 0.925,
+ "clusters before split (with PN input): share with PSDs from 2 or more PNs": 0.372,
+ "share of calyx sites on a claw (new main version) by MB": {
+  "hemibrain R": 0.838,
+  "male CNS L": 0.885,
+  "male CNS R": 0.868
+ }
+}
