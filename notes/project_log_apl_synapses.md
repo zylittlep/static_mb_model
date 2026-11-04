@@ -41,6 +41,9 @@ peduncle and lobes; both grow through outside synapses with KCs in ≤3 µm step
 nearest anchor point within 3 µm. Accessory calyces stay out. The rule, counts and a map of the added synapses are in that folder's
 `README.md`, `added_synapses_summary.csv` and `where_synapses_were_added.png`. The files in this folder are unchanged.
 
+## Third version: new claws, `with_outside_ROI_synapses/claws_v2m2/` (2026-11-04)
+Claws found along each KC's skeleton with Yang's rule of 2026-11-04 and the variant Yang chose (`claw_v2m2`): a KC's calyx sites are clustered at 8 µm along its skeleton, and in each cluster every PN with at least 2 PSDs gets its own claw. Hemibrain and male CNS only (the datasets with KC skeletons), on the corrected calyx. Now 56–58% of KC→APL and 66–69% of APL→KC calyx synapses sit on claws (21–26% and 38–49% with the old 2 µm claws). Segmentation and comparisons with the old claws and Prat's hemibrain counts: `claws_geodesic/` (README there; scripts in `scripts/claws_geodesic/`); tables the models read: `with_outside_ROI_synapses/claws_v2m2/` (README there). Set `APL_VARIANT=claws_v2m2` to run the pipeline on them; model outputs go to `with_outside_ROI_synapses/claws_v2m2/odor_weighted/` and `.../apl_geodesic/`. Reports 00–12 in `reports/` were rebuilt on this version for Yang's revision list of 2026-11-03 (new ORN table from `orn_inputs_2026-11-03/`, a PN-level step fitted to GH146, negative responses, version MC); the earlier reports are in `reports/archive_2026-11-03_before_revision/`. KC skeleton figures with the new claws: `kc_skeletons/claws_v2m2/`. The official-ROI files and the earlier version are unchanged.
+
 ## Key columns
 - `direction`: `APL_output (APL presynaptic)` or `APL_input (APL postsynaptic)`.
 - `pre_*_nm`, `post_*_nm`: presynaptic (T-bar) and postsynaptic site, **in nanometres** in each dataset's native space. Divide by 8 for hemibrain/male CNS voxels; FlyWire neuroglancer uses (4,4,40) nm; BANC (4,4,45) nm. FlyWire also has `ctr_*` (cleft centre).
@@ -57,6 +60,7 @@ nearest anchor point within 3 µm. Accessory calyces stay out. The rule, counts 
   - KC claws: single-linkage clustering (2 µm) of each KC's postsynaptic sites from PNs in the calyx. Gives 5.6–8 claws per KC (literature ~5–7).
   - An APL synapse gets `claw_id` / `bouton_id` if the partner-side site is ≤2 µm from that KC's claw / PN's bouton points. `nearest_claw_id` / `nearest_bouton_id` + `*_dist_nm` are always given, so you can re-threshold.
   - Result: ~30–35% of APL↔KC calyx synapses fall within 2 µm of a claw; ~98% of APL↔PN calyx synapses map to a bouton.
+  - These are the old claws. The new skeleton-based claws (2026-11-04) are described in the third-version section above.
 
 ## Caveats
 - The tables in this folder use each dataset's official ROIs only. The male CNS v1.0 CA(L)/CA(R) ROIs leave out the posterior part of each calyx (primary ROI `CentralBrain-unspecified`), so the male CNS calyx numbers here miss 18% (left) / 9% (right) of PN↔APL and 33% / 14% of KC↔APL calyx synapses, and 12% of ALPN→KC synapses. In FlyWire, hemibrain and BANC, 3–6% of APL↔KC and 0–5% of APL↔PN synapses next to the calyx fall outside every MB ROI (ventral edge, partly accessory calyx). `odor_weighted/calyx_shape_by_dataset.png` shows where. `with_outside_ROI_synapses/` has a second version with these synapses added (male CNS calyx +31% APL synapses; FlyWire and BANC lobes +25% and +57%, where CRE, SIP and SMP take in parts of the lobes).

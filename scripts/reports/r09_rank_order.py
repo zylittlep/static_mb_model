@@ -1,25 +1,34 @@
-"""Report 09: rank order of odor-pair similarity with and without APL (tnt_rank_order.py, rank_order_toy_sim.py)."""
-import sys, json
+"""Report 09: rank order of odor-pair similarity with and without APL (tnt_rank_order.py, rank_order_toy_sim.py).
+Rebuilt 2026-11-04 for Yang's revision: corrected calyx, new claws, new ORN table (APL_VARIANT=claws_v2m2), version MC, and the logic of
+the noise correction step by step with a simulation. The toy simulations do not use the connectome and are read from odor_weighted/.
+Old version in archive_2026-11-03/."""
+import sys, json, os
+os.environ['APL_VARIANT'] = 'claws_v2m2'
+for _v in ('OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS'):
+    os.environ.setdefault(_v, '1')
 sys.path.insert(0, '/mnt/project-files/apl_synapses/scripts'); sys.path.insert(0, '/mnt/project-files/apl_synapses/scripts/reports')
 import numpy as np, pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import spearmanr
 import report_lib as L
 import tnt_compare as tc
-L.style()
+L.style(); L.DATE = '2026-11-04'
 F = L.fmt
+OWV = tc.OUT                                  # with_outside_ROI_synapses/claws_v2m2/odor_weighted/
 TJ = json.load(open(L.OW + 'rank_order_toy_simulation.json')); TP = pd.read_csv(L.OW + 'rank_order_toy_simulation_pairs.csv')
-RO = pd.read_csv(L.OW + 'TNT_rank_order.csv'); PR = pd.read_csv(L.OW + 'TNT_vs_model_odor_pairs.csv'); PR = PR[PR.threshold == 1.0]
-VERS = ['U', 'C', 'P0', 'P', 'L', 'M0', 'M', 'F0', 'F']
+RO = pd.read_csv(OWV + 'TNT_rank_order.csv'); PR = pd.read_csv(OWV + 'TNT_vs_model_odor_pairs.csv'); PR = PR[PR.threshold == 1.0]
+VERS = ['U', 'C', 'P0', 'P', 'L', 'M0', 'M', 'MC', 'F0', 'F']
 ro = lambda resp, comp: float(RO[(RO.source == 'data') & (RO.responses == resp) & (RO.comparison == comp)].spearman.iloc[0])
 
 R = L.Report('09', 'Does blocking APL change the rank order of odor-pair similarity, in theory, in the model and in the recordings?',
-             inputs=['The recordings (Report 06)', 'The pinned model (Report 07)'],
-             outputs=['`odor_weighted/TNT_rank_order.csv`', '`odor_weighted/rank_order_toy_simulation.png`, `.json`, `_pairs.csv`'],
+             inputs=['The recordings (Report 06)', 'The pinned model (Report 07; corrected calyx, new claws, new ORN table)'],
+             outputs=['`with_outside_ROI_synapses/claws_v2m2/odor_weighted/TNT_rank_order.csv`',
+                      '`odor_weighted/rank_order_toy_simulation.png`, `.json`, `_pairs.csv` (no connectome, unchanged)'],
              scripts=['`scripts/tnt_rank_order.py`', '`scripts/rank_order_toy_sim.py`', '`scripts/reports/r09_rank_order.py` (this report)'])
 R.p('Reports 06 and 07 look at how much each pair\'s similarity changes. A different question is whether the **order** of the pairs changes: '
     'if pair A is more similar than pair B with APL intact, is it still more similar with APL blocked? A purely global inhibition might be '
     'expected to keep the order. This report shows when it does and when it does not, then compares model and data.')
+R.box('What changed in this revision (2026-11-04)', ["New: the logic of the noise correction, step by step, with a simulation.", "Model numbers come from the run with the corrected calyx, the new claws and the new ORN table; version MC is added."], 'plain')
 R.symbols([
     ('S^{\\mathrm{on}}_{ab},\\ S^{\\mathrm{off}}_{ab}', 'Cosine similarity of odors $a$, $b$ with inhibition on (APL intact) and off (APL blocked)', '−1 to 1'),
     ('\\rho', 'Spearman rank correlation over the odor pairs between $S^{\\mathrm{on}}$ and $S^{\\mathrm{off}}$', '1 = same order'),
@@ -91,21 +100,23 @@ R.ul([f'Scaling: every similarity unchanged to 10⁻¹⁴ ($\\rho$ = 1).',
 
 # ---------------------------------------------------------------- 4 model
 R.section('The connectome model')
-R.p('In the pinned model of Report 07, $\\rho$ is computed between the blocked and intact similarity over the odor pairs. Table 2 uses the '
+R.p('In the pinned model of Report 07, $\\rho$ is computed between the blocked and intact similarity over the odor pairs. '
+    f'Table {R.n_tab + 1} uses the '
     'similarity averaged over the three mushroom bodies first; Report 11 averages $\\rho$ over the mushroom bodies instead, which gives '
-    'values about 0.005 lower.')
-rows = []
+    'slightly lower values.')
+rows, RHO = [], {}
 for v in VERS:
     r1 = [spearmanr(Q.S_model_blocked, Q.S_model_blocked - Q[f'dS_model_{v}'])[0] for rn in ['ORN', 'GH146'] for Q in [PR[PR.responses == rn]]]
-    rows.append([v, F(r1[0], 3), F(r1[1], 3)])
+    rows.append([v, F(r1[0], 3), F(r1[1], 3)]); RHO[v] = r1[0]
 R.table(['version (Report 05 / 07)', '$\\rho$, ORN input (120 pairs)', '$\\rho$, GH146 input (78 pairs)'], rows,
         title='Rank order kept by every model version.', caption='Spearman over odor pairs between blocked and intact similarity of the pinned model, '
         'similarity averaged over hemibrain R and male CNS L and R.', num_cols=[1, 2])
 mU = RO[(RO.source == 'model') & (RO.responses == 'ORN')]
+VMIN = min(RHO, key=RHO.get)
 R.p('Per mushroom body, uniform feedback gives ' + ', '.join(f'{r.spearman:.3f}' for r in mU[mU.comparison.str.contains('uniform')].itertuples()) +
     ' and a fixed threshold raise ' + ', '.join(f'{r.spearman:.3f}' for r in mU[mU.comparison.str.contains('fixed')].itertuples()) +
-    ' (ORN input; hemibrain R, male CNS L, male CNS R). Only version P, with all inhibition dividing the PN bouton output per glomerulus, '
-    'lowers $\\rho$ noticeably (0.95).')
+    f' (ORN input; hemibrain R, male CNS L, male CNS R). The lowest value is version {VMIN}\'s ({RHO[VMIN]:.3f}); every other version keeps '
+    f'$\\rho$ at {min(v_ for k_, v_ in RHO.items() if k_ != VMIN):.3f} or above.')
 
 # ---------------------------------------------------------------- 5 data
 R.section('The recordings')
@@ -124,6 +135,19 @@ R.p(f'Over the 120 pairs, TNT and TNT3c similarity give $\\rho$ = {full:.3f}, lo
     'rank correlation without noise:')
 R.eq(r'\rho_{\mathrm{true}} \approx \frac{\rho_{\mathrm{between}}}{\sqrt{\rho^{\mathrm{TNT}}_{\mathrm{within}}\;\rho^{\mathrm{TNT3c}}_{\mathrm{within}}}}',
      note='the usual correction for attenuation, applied to rank correlations of half-sample means')
+R.sub('The logic of the correction')
+R.p('Equation 3 is Spearman\'s correction for attenuation. Step by step:')
+R.ul(['**1. Every measurement is pattern + noise.** The similarity of a pair measured from a set of recordings is its true value in '
+      'that condition plus recording noise. A different set of recordings gives the same true value with different noise.',
+      '**2. Noise lowers correlations.** If two measurements $X$ and $Y$ each carry independent noise, their correlation is the correlation '
+      'of their true values times a shrink factor: $\\mathrm{corr}(X, Y) = \\mathrm{corr}(T_X, T_Y) \\cdot \\sqrt{\\mathrm{rel}_X\\,\\mathrm{rel}_Y}$, '
+      'where rel = (variance of the true values) ÷ (variance of the measurement) is the share of a measurement that is not noise.',
+      '**3. The within-condition correlation measures rel.** Two halves of the same condition share the true values and differ only in '
+      'noise, so their correlation equals rel: $\\rho^{\\mathrm{TNT}}_{\\mathrm{within}} \\approx \\mathrm{rel}_{\\mathrm{TNT}}$, and the same for TNT3c.',
+      '**4. Undo the shrink.** $\\rho_{\\mathrm{between}}$ (a TNT half against a TNT3c half) is the true TNT-vs-TNT3c correlation shrunk by '
+      '$\\sqrt{\\mathrm{rel}_{\\mathrm{TNT}}\\,\\mathrm{rel}_{\\mathrm{TNT3c}}}$. Dividing by that factor gives Equation 3.',
+      '**5. Why halves on both sides.** The between value is computed from half-size samples, exactly like the within values, so both '
+      'carry the same amount of noise and no Spearman–Brown step is needed.'])
 
 
 def fig_data():
@@ -148,13 +172,45 @@ R.fig(fig_data(), '**a**, Each point is one odor pair: its mean similarity in TN
 corr = bt.mean() / np.sqrt(w3.mean() * wt.mean())
 R.ul([f'$\\rho_{{\\mathrm{{between}}}}$ = {bt.mean():.3f} vs $\\rho_{{\\mathrm{{within}}}}$ = {w3.mean():.3f} (TNT3c) and {wt.mean():.3f} (TNT); the between '
       f'value is lower than both within values in {L.pct(np.mean((bt < w3) & (bt < wt)), 1)} of splits.',
-      f'Corrected for noise, $\\rho_{{\\mathrm{{true}}}}$ ≈ {corr:.2f}. The model versions give 0.95–0.99, so **the recordings reorder odor pairs more '
-      'than uniform or connectome-weighted feedback inhibition on the KCs predicts**.',
+      f'Corrected for noise, $\\rho_{{\\mathrm{{true}}}}$ ≈ {corr:.2f}. The model versions give {min(RHO.values()):.2f}–{max(RHO.values()):.2f}, so '
+      + ('**the recordings reorder odor pairs more than uniform or connectome-weighted feedback inhibition on the KCs predicts**.' if corr < min(RHO.values())
+         else 'some model versions reorder as much as the recordings.'),
       f'Counting only responses above 1 (0/1) weakens the effect: {ro("responses > 1 (0/1)", "half vs half, TNT vs TNT3c"):.2f} between vs '
       f'{ro("responses > 1 (0/1)", "half vs half, within TNT3c (mean of 1000 splits)"):.2f} and {ro("responses > 1 (0/1)", "half vs half, within TNT"):.2f} within, '
       f'lower in {L.pct(ro("responses > 1 (0/1)", "fraction of splits with between < both withins"), 0)} of splits.'])
+rs9 = np.random.default_rng(9)
+
+
+def sim9(rt, rel, n=1000):
+    sd = np.sqrt(1 / rel - 1); acc = []
+    for _ in range(n):
+        TC = rs9.standard_normal(120); TT = rt * TC + np.sqrt(1 - rt ** 2) * rs9.standard_normal(120)
+        c1, c2 = TC + sd * rs9.standard_normal(120), TC + sd * rs9.standard_normal(120)
+        t1, t2 = TT + sd * rs9.standard_normal(120), TT + sd * rs9.standard_normal(120)
+        wC, wT, bw = spearmanr(c1, c2)[0], spearmanr(t1, t2)[0], spearmanr(t1, c1)[0]
+        acc.append((wC, wT, bw, bw / np.sqrt(wC * wT), spearmanr(TT, TC)[0]))
+    return np.mean(acc, 0)
+
+
+wdat = (w3.mean() + wt.mean()) / 2
+RELG = np.linspace(0.85, 0.98, 27); REL9 = RELG[np.argmin([abs(sim9(1.0, r_, 200)[0] - wdat) for r_ in RELG])]
+RTG = np.linspace(0.80, 1.0, 41); RT9 = RTG[np.argmin([abs(sim9(r_, REL9, 200)[2] - bt.mean()) for r_ in RTG])]
+tab9 = []
+for rt in (1.0, RT9):
+    a9 = sim9(rt, REL9)
+    tab9.append([f'{rt:.3f}', f'{a9[4]:.3f}', f'{a9[0]:.3f}', f'{a9[1]:.3f}', f'{a9[2]:.3f}', f'**{a9[3]:.3f}**'])
+tab9.append(['the data', '?', f'{w3.mean():.3f}', f'{wt.mean():.3f}', f'{bt.mean():.3f}', f'**{corr:.3f}**'])
+R.table(['true correlation (Pearson)', 'true ρ (ranks)', '$\\rho^{\\mathrm{TNT3c}}_{\\mathrm{within}}$', '$\\rho^{\\mathrm{TNT}}_{\\mathrm{within}}$',
+         '$\\rho_{\\mathrm{between}}$', 'corrected'], tab9,
+        f'Mock data: 120 pairs, a true TNT3c pattern and a true TNT pattern that correlate as in column 1, and noise in each half sized '
+        f'(rel = {REL9:.3f}) so that two halves of one condition correlate as in the recordings. Means of 1,000 simulations. In the first row '
+        'blocking APL keeps the order perfectly, yet the between value is below 1 because of noise; the correction brings it back near 1. '
+        'In the second row the true correlation is chosen so that the between value matches the data\'s, and the correction recovers it closely.',
+        'The correction in a simulation.')
+R.p(f'So a between value of {bt.mean():.2f} with within values of about {wdat:.2f} is what a true rank correlation of about {corr:.2f} looks '
+    'like through this much noise. The correction is exact for Pearson correlations with independent noise and a close approximation for '
+    'Spearman, as the table shows.')
 R.box('What could reorder more', ['Inhibition that changes the input pattern differently for each odor, rather than one threshold per odor. '
-      'In the model, presynaptic inhibition of PN boutons weighted per glomerulus (version P) does this, reaching ρ ≈ 0.95. Report 11 '
-      'tests a local, non-spiking APL on KCs and boutons.',
+      f'In the model, the version that reorders most is {VMIN} (ρ = {RHO[VMIN]:.3f}). Report 11 tests a local, non-spiking APL on KCs and boutons.',
       'Differences between the recorded flies and the connectome flies, or response nonlinearities not in the model.'], 'plain')
 R.save()

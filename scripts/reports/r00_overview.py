@@ -5,11 +5,32 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyBboxPatch
 import report_lib as L
-L.style()
+import pandas as pd
+L.style(); L.DATE = '2026-11-04'
 F = L.fmt
+OWV = L.B + 'with_outside_ROI_synapses/claws_v2m2/odor_weighted/'
+TVM = json.load(open(OWV + 'TNT_vs_model_summary.json')); FO = TVM['fits']['threshold 1.0, ORN']
+FIT = pd.read_csv(OWV + 'TNT_vs_model_fits.csv'); FIT = FIT[FIT.threshold == 1.0].set_index(['responses', 'version'])
+RO = pd.read_csv(OWV + 'TNT_rank_order.csv'); _ro = RO[(RO.source == 'data') & (RO.responses == 'raw responses')].set_index('comparison').spearman
+CORR = _ro['half vs half, TNT vs TNT3c'] / np.sqrt(_ro['half vs half, within TNT3c (mean of 1000 splits)'] * _ro['half vs half, within TNT'])
+PR = pd.read_csv(OWV + 'TNT_vs_model_odor_pairs.csv'); PR = PR[(PR.threshold == 1.0) & (PR.responses == 'ORN')]
+from scipy.stats import spearmanr
+RHO = [spearmanr(PR.S_model_blocked, PR.S_model_blocked - PR[c])[0] for c in PR.columns if c.startswith('dS_model_')]
+SL = json.load(open(OWV + 'APL_local_model_summary.json')); SC = json.load(open(OWV + 'APL_compartment_model_summary.json'))
+NUL = {rn: SL[rn][next(k for k in SL[rn] if k.startswith('null'))]['r real, null mean, null 5-95%, p'][3] for rn in ['ORN', 'GH146']}
+RKC = [v for rn in ['ORN', 'GH146'] for k, v in SC[rn]['model: Spearman blocked vs intact (mean over MBs) by version'].items()
+       if k.startswith('compartments')]
 
 R = L.Report('00', 'What was done in this project, in which order, where each step is explained, and what every recurring term and symbol means.')
 
+R.box('Revision of 2026-11-04', [
+    'All reports were rebuilt for Yang\'s revision list of 2026-11-03. They now use the **corrected calyx** (synapses outside the official '
+    'ROIs added), the **new claws** (Yang\'s rule of 2026-11-04: a KC\'s calyx sites clustered at 8 µm along its skeleton, one claw per PN '
+    'with at least 2 PSDs) and the **new ORN table** (from `responses_wide.csv`, 2026-11-03). The model uses hemibrain R and male CNS L and R.',
+    'Each report opens with what changed. The earlier versions are kept in `reports/archive_2026-11-03_before_revision/` (their scripts in `scripts/reports/archive_2026-11-03/`), and the official-ROI files are unchanged.',
+    'New in the model (Report 05): a PN-level transformation of the ORN responses fitted to GH146, runs with negative responses kept, and '
+    'version MC (per-KC counts plus bouton inhibition per glomerulus). The questions of the revision list are answered in the reports '
+    'themselves (Reports 05–11).'], 'plain')
 R.p('The project asks how the APL neuron, the single inhibitory neuron of each mushroom body, is wired with the projection neurons (PNs) '
     'and Kenyon cells (KCs) in the calyx, and whether that wiring can explain how blocking APL changes the KC odor code in Yang\'s '
     'recordings (TNT, APL blocked, vs the TNT3c control). The work falls into three parts: building the synapse data (Reports 01–03), '
@@ -68,33 +89,44 @@ S = [
     ('01', 'One table per connectome (FlyWire, hemibrain, male CNS, BANC) with every APL synapse in the mushroom body: who the partner is, '
             'where the synapse is, and its region and compartment. Synapses are counted as T-bar → PSD pairs. KCs are APL\'s main partner '
             'everywhere; in the calyx PNs come second. Per KC, synapses onto APL and from APL go together (Spearman 0.62–0.75, BANC 0.46).'),
-    ('02', 'Boutons (on PN axons) and claws (on KC dendrites) are found by clustering synapse sites within 2 µm; claws are 94–95% from one PN. '
-            'An APL synapse is placed on a claw or bouton when within 2 µm: almost all APL ↔ PN synapses sit on boutons, but only 18–27% of '
-            'KC → APL and 30–49% of APL → KC calyx synapses sit on claws. The posterior view used in every map is defined here. The '
-            'second version of the tables adds synapses just outside the official ROIs, mostly the back of the male CNS calyx (+31%).'),
-    ('03', 'Yang\'s ORN and GH146 responses are averaged over flies per glomerulus and attached to each APL synapse through its PN or claw. '
-            'An odor\'s strongest boutons are scattered over the whole calyx. Weighting odor similarity by APL\'s on-claw synapses barely changes it.'),
+    ('02', 'Boutons (on PN axons) are clusters of a PN\'s T-bars within 2 µm. Claws (on KC dendrites) follow Yang\'s rule of 2026-11-04: '
+            'a KC\'s calyx sites are clustered at 8 µm along its skeleton and every PN with at least 2 PSDs in a cluster gets its own claw; this '
+            'matches Prat\'s hemibrain claw counts best of the rules tried. About 56–58% of KC → APL and 66–69% of APL → KC calyx synapses '
+            'now sit on claws (hemibrain, male CNS). The corrected calyx adds synapses just outside the official ROIs, mostly the back of '
+            'the male CNS calyx. The posterior view used in every map is defined here.'),
+    ('03', 'Yang\'s ORN (new table, 2026-11-03) and GH146 responses are averaged over flies per glomerulus and attached to each APL synapse '
+            'through its PN or claw, in 2D and 3D maps. An odor\'s strongest boutons are scattered over the whole calyx. Weighting odor '
+            'similarity by APL\'s synapses barely changes it.'),
     ('04', 'Per glomerulus: APL → PN synapses per PN → KC synapse (bouton weight $p_g$), APL → KC synapses on its claws per claw PN synapse '
             '(claw weight $q_g$), and the boutons\' share $f$ of APL\'s calyx output (about 10%). These are the wiring numbers the model uses.'),
     ('05', 'The KC model: KC input from claws × glomerulus responses, a threshold, and APL feedback solved self-consistently, in a uniform '
-            'version and versions using per-KC counts, per-glomerulus bouton and claw weights. Built and explained step by step.'),
-    ('06', 'The recordings: 8 TNT and 11 TNT3c recordings (each treated as an independent hemisphere), 16 odors. With APL blocked more units '
-            'respond and every odor pair becomes more similar (mean change in cosine similarity 0.18).'),
+            'version and versions using per-KC counts, per-glomerulus bouton and claw weights, and both together (MC). Built and explained '
+            'step by step, with a PN-level transformation of the ORN input, negative responses, every version\'s similarity maps and the '
+            'recordings\' maps for comparison.'),
+    ('06', 'The recordings (FC z-scores): 8 TNT and 11 TNT3c recordings (each treated as an independent hemisphere), 16 odors. With APL '
+            'blocked more units respond and every odor pair becomes more similar (mean change in cosine similarity 0.18). Most of the '
+            'variation between pairs is per odor, and it follows chance overlap: odors that drive many units in TNT overlap more with everything.'),
     ('07', 'The model is pinned to the recordings (each odor\'s blocked fraction matches TNT; one APL gain matches TNT3c\'s mean). Uniform '
-            'feedback predicts which pairs gain similarity (r 0.46 with ORN input, 0.32 with GH146; data ceiling about 0.84). Per-KC '
-            'counts and boutons at their real share do not beat shuffled wiring. The model\'s change is about half the data\'s.'),
+            f'feedback predicts which pairs gain similarity (r {FIT.loc[("ORN", "U"), "r_pairs"]:.2f} with ORN input, '
+            f'{FIT.loc[("GH146", "U"), "r_pairs"]:.2f} with GH146; data ceiling about {FO["ceiling for r with a model (sqrt of that)"]:.2f}). '
+            'Per-KC counts and bouton weights change $r$ by a few hundredths at most. The model\'s change is '
+            f'{FIT.loc[("ORN", "U"), "model_mean_dS"] / FIT.loc[("ORN", "U"), "data_mean_dS"]:.2f} times the data\'s.'),
     ('08', 'Why: feedback holds down odors that drive many KCs more than odors that drive few, so blocking APL helps strong odors most, '
-            'and pairs of strong odors gain the most similarity.'),
+            'and pairs of strong odors gain the most similarity by chance overlap. Feedback fits better than a fixed threshold raise with the '
+            'same mean inhibition, and as well as the data\'s own per-odor fractions. The recordings show this signature in response size but only weakly in the number of responding units.'),
     ('09', 'Whether inhibition changes the **order** of odor-pair similarities. Global inhibition keeps the order exactly only in special cases; '
-            'the model keeps it almost (Spearman 0.97–0.98), the data less (0.87, about 0.92 after correcting for noise). Toy simulations show '
-            'each case.'),
+            f'the model keeps it almost (Spearman {min(RHO):.2f}–{max(RHO):.2f} over versions), the data less ({_ro["TNT vs TNT3c, all recordings"]:.2f}, '
+            f'about {CORR:.2f} after correcting for noise). Toy simulations show each case.'),
     ('10', 'Distances along APL\'s skeleton between the microglomeruli of every pair of glomeruli, hemibrain and male CNS. APL\'s calyx arbor '
             'comes in sub-arbors that join only farther down, so glomeruli in the same sub-arbor are much closer along APL.'),
     ('11', 'APL as a non-spiking neuron: inhibition spreads along its skeleton and fades as $e^{-d/\\lambda}$. Short-range inhibition on KCs '
-            'predicts which odor pairs change most better than a uniform APL (the real wiring beats within-class shuffles in 3 of 4 tests), '
+            'predicts which odor pairs change most better than a uniform APL (the real wiring beats within-class shuffles for '
+            + (' and '.join(rn for rn in NUL if NUL[rn] <= 0.05) or 'neither input') + ' input'
+            + ('' if all(v <= 0.05 for v in NUL.values()) else ', not for ' + ' and '.join(rn for rn in NUL if NUL[rn] > 0.05)) + '), '
             'but barely changes the rank order; inhibition on PN boutons alone comes closest to the data\'s reordering, and is too weak at '
             'its real share.'),
-    ('12', 'APL with its signal confined to each calyx sub-arbor of Report 10 (no crossing between them). Rank order stays at about 0.98, '
+    ('12', 'APL with its signal confined to each calyx sub-arbor of Report 10 (no crossing between them). Rank order stays at '
+            f'{min(RKC):.2f}–{max(RKC):.2f}, '
             'like a uniform APL; the pattern of which pairs change is no better than one APL unless each sub-arbor\'s potential is divided by '
             'its cable length, and never better than the local model without walls.'),
 ]
@@ -112,14 +144,15 @@ G = [
     ('Calyx, peduncle, lobes', 'Parts of the mushroom body: dendritic input region, axon bundle, and axon output region (α, α′, β, β′, γ lobes).'),
     ('Compartment', 'Subdivision of a lobe (α1 … γ5) defined by its dopaminergic and output neurons.'),
     ('Bouton', 'A swelling of a PN axon in the calyx holding many release sites; here a cluster of the PN\'s T-bars within 2 µm.'),
-    ('Claw', 'A KC dendritic ending that wraps a bouton; here a cluster of the KC\'s PN-input sites within 2 µm. Its glomerulus is that of its main PN.'),
+    ('Claw', 'A KC dendritic ending that wraps a bouton. Here (from 2026-11-04): within an 8 µm cluster of the KC\'s calyx sites along its skeleton, the sites of one PN with at least 2 PSDs. Its glomerulus is that PN\'s.'),
     ('Microglomerulus', 'One bouton with the claws around it, and APL\'s synapses there.'),
     ('T-bar, PSD', 'The presynaptic release site and a postsynaptic density facing it. One T-bar can face several PSDs.'),
     ('Synaptic weight', 'Number of T-bar → PSD pairs from one neuron onto another in a region (neuPrint "weight", FlyWire "syn_count").'),
-    ('ROI', 'Region of interest: a dataset\'s official 3D volume for a brain region. "Official ROIs" = the main tables; the second version adds synapses just outside them.'),
+    ('ROI', 'Region of interest: a dataset\'s official 3D volume for a brain region. The corrected calyx adds synapses just outside the official ROIs; it is used everywhere from 2026-11-03.'),
     ('Hemibrain, male CNS, FlyWire, BANC', 'The four electron-microscopy connectomes (Report 01). The model uses hemibrain (right side) and male CNS (both sides).'),
     ('Posterior view', 'Calyx seen from behind: fly\'s right to the right, dorsal up (Report 02, Table 2).'),
-    ('ORN table, GH146', 'Yang\'s glomerular responses: ORN imaging (fly means; 16 odors used by the model) and GH146 PN imaging (peak ΔF/F; 13 of those odors).'),
+    ('ORN table, GH146', 'Yang\'s glomerular responses: ORN imaging (new table from `responses_wide.csv`, fly means; 16 odors used by the model) and GH146 PN imaging (peak ΔF/F; 13 of those odors).'),
+    ('FC z-score', 'The unit of the TNT and TNT3c responses (Yang, 2026-11-03).'),
     ('TNT, TNT3c', 'Yang\'s KC recordings with APL blocked by tetanus toxin (TNT) and the control with an inactive toxin (TNT3c, APL intact).'),
     ('Recording, unit', 'One imaged hemisphere (treated as independent), and one imaged KC region of interest in it.'),
     ('Responding, fraction responding', 'A unit responds to an odor when its response exceeds 1 (data); a model KC when its response is above 0. The fraction responding is also called the coding level.'),
@@ -161,7 +194,8 @@ R.symbols([
 
 R.section('Decisions that apply to every report')
 R.ul(['Synapse counts are T-bar → PSD pairs and stand in for synaptic strength.',
-      'Two versions of every table and plot are kept: official ROIs, and with synapses outside them added (Yang, 2026-10-14).',
+      'Two versions of every table and plot are kept: official ROIs, and with synapses outside them added (Yang, 2026-10-14). From '
+      '2026-11-03 the reports use the corrected calyx (synapses outside the ROIs added), and from 2026-11-04 the new claws.',
       'The model and the comparison with the recordings use only hemibrain and male CNS (Yang, 2026-10-21).',
       'TNT3c is the control (APL intact) and TNT has APL blocked; each recording is an independent hemisphere (Yang, 2026-10-15).',
       'Odor-pair similarity is cosine similarity, as in Yang\'s RDMs (from 2026-10-21).',

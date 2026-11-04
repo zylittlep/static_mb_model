@@ -1,5 +1,8 @@
-"""Report 04: APL wiring per glomerulus, the connectome numbers the block model uses (apl_block_model.py, section 1)."""
-import sys
+"""Report 04: APL wiring per glomerulus, the connectome numbers the block model uses (apl_block_model.py, section 1).
+Rebuilt 2026-11-04 (Yang's revision): corrected calyx, new claws (APL_VARIANT=claws_v2m2), row names on Figure 2, and p_g per
+calyx for every connectome (r04_prep_v2.py). The old version is in archive_2026-11-03/."""
+import sys, os
+os.environ['APL_VARIANT'] = 'claws_v2m2'
 sys.path.insert(0, '/mnt/project-files/apl_synapses/scripts'); sys.path.insert(0, '/mnt/project-files/apl_synapses/scripts/reports')
 import numpy as np, pandas as pd
 import matplotlib.pyplot as plt
@@ -8,10 +11,10 @@ from matplotlib.colors import TwoSlopeNorm
 from scipy.stats import spearmanr
 import report_lib as L
 import apl_block_model as abm
-L.style()
+L.style(); L.DATE = '2026-11-04'
 F = L.fmt
 DS = abm.DS; DSN = {'hemibrain': 'hemibrain', 'malecns': 'male CNS'}
-GW = pd.read_csv(L.OW + 'APL_wiring_by_glomerulus.csv'); GWi = GW.set_index(['dataset', 'glomerulus'])
+GW = pd.read_csv(abm.OUT + 'APL_wiring_by_glomerulus.csv'); GWi = GW.set_index(['dataset', 'glomerulus'])
 GL = abm.GL_OK; KW = abm.kw; PNW = abm.PNW
 assert np.allclose(GWi.APL_to_PN_per_PN_to_KC.values, abm.GWi.reindex(GWi.index).APL_to_PN_per_PN_to_KC.values, atol=1e-5, equal_nan=True)
 
@@ -25,15 +28,20 @@ QUANT = [  # column, short name, symbol, plain description
 
 R = L.Report('04', 'How much APL wiring does each antennal-lobe glomerulus get in the calyx, measured per unit of its input to the KCs, '
              'and is that pattern the same in hemibrain and male CNS?',
-             inputs=['`PN_calyx_weights_APL_vs_KC.csv`: per PN, its calyx synapses onto KCs and to and from APL (Report 01)',
+             inputs=['All in `with_outside_ROI_synapses/claws_v2m2/` (corrected calyx, new claws; Report 02):',
+                     '`PN_calyx_weights_APL_vs_KC.csv`: per PN, its calyx synapses onto KCs and to and from APL (Report 01)',
                      '`odor_weighted/KC_APL_synapses_on_claws_by_glomerulus.csv`: KC↔APL synapses that sit on a claw, with the claw\'s glomerulus (Report 02)',
                      '`hemibrain_KC_claws_derived.csv.gz`, `malecns_KC_claws_derived.csv.gz`: the claws (Report 02)',
-                     '`KC_weights_APL_PN_per_KC.csv`: per KC, its calyx APL synapses (Report 01)'],
-             outputs=['`odor_weighted/APL_wiring_by_glomerulus.csv` (one row per dataset × glomerulus)',
-                      'the weights $p_g$, $q_g$ and the bouton share $f$ used in Report 05'],
-             scripts=['`scripts/apl_block_model.py`, section "1. APL wiring per glomerulus"', '`scripts/reports/r04_glomerulus_wiring.py` (this report)'])
+                     '`KC_weights_APL_PN_per_KC.csv`: per KC, its calyx APL synapses (Report 01)',
+                     'For Section 5: the corrected-calyx PN ↔ KC and PN ↔ APL synapses of all four connectomes'],
+             outputs=['`with_outside_ROI_synapses/claws_v2m2/odor_weighted/APL_wiring_by_glomerulus.csv` (one row per dataset × glomerulus)',
+                      'the weights $p_g$, $q_g$ and the bouton share $f$ used in Report 05',
+                      '`reports/data/r04v2_pg_per_calyx.csv`, `r04v2_PN_calyx_weights_per_side.csv` ($p_g$ per calyx, all connectomes)'],
+             scripts=['`scripts/apl_block_model.py`, section "1. APL wiring per glomerulus" (`APL_VARIANT=claws_v2m2`)',
+                      '`scripts/reports/r04_prep_v2.py` (per-calyx counts)', '`scripts/reports/r04_glomerulus_wiring.py` (this report)'])
 R.p('Report 05 lets APL\'s inhibition differ between glomeruli in three of its versions (P, L and M). This report explains where those '
-    'per-glomerulus numbers come from. Only hemibrain and male CNS are used (Yang, 2026-10-21), with official ROIs only. In the male CNS '
+    'per-glomerulus numbers come from. The model uses only hemibrain and male CNS (Yang, 2026-10-21), with the corrected calyx and the new '
+    'claws (Report 02). Section 5 adds the bouton weight for every calyx of all four connectomes, as Yang asked. In the male CNS '
     'the two calyces are pooled here, because the per-glomerulus numbers are computed per dataset.')
 R.symbols([
     ('g', 'An antennal-lobe glomerulus. Only uniglomerular PN types count (one glomerulus in the type name).', 'hemibrain names VC3l, VC3m, VC5 are renamed VC3, VC5, VM6 to match the other datasets'),
@@ -52,10 +60,11 @@ R.symbols([
 R.section('The units: PN boutons, claws and microglomeruli')
 R.p('In the calyx, each PN axon forms **boutons**: swellings that carry its output synapses. Several KC dendritic **claws** wrap around '
     'one bouton, and the bouton with its claws is called a **microglomerulus**. APL makes synapses in both directions with both partners: '
-    'APL→PN and PN→APL on the boutons, and APL→KC and KC→APL on the claws (Figure 1). Report 02 explains how boutons and claws are found '
-    'from synapse positions (clusters of sites within 2 µm). A KC↔APL synapse counts as **on a claw** if its KC-side site is within 2 µm '
-    'of one of that KC\'s claw PN synapses, the same rule that defines claws. Every claw belongs to one glomerulus: that of its main PN, '
-    'the PN that makes most of its PN synapses.')
+    'APL→PN and PN→APL on the boutons, and APL→KC and KC→APL on the claws (Figure 1). Report 02 explains how they are found. Boutons are '
+    'clusters of a PN\'s calyx T-bars within 2 µm. Claws follow Yang\'s corrected rule: a KC\'s calyx synapse sites are clustered at '
+    '8 µm along the KC skeleton, and each cluster is split by presynaptic PN (each PN with ≥ 2 PSDs gets its own claw). A KC↔APL synapse '
+    'counts as **on a claw** if it lies within 8 µm, along the KC, of a PN synapse of that claw. Every claw belongs to one glomerulus: that '
+    'of its PN.')
 
 
 def schematic():
@@ -111,10 +120,11 @@ def fig_heat():
     rows, labs = [], []
     for col, nm, sym, _ in QUANT:
         for ds in DS:
-            x = GWi[col].loc[ds].reindex(GL); rows.append(np.log2(np.maximum(x / x.median(), 2 ** -1.6)).values)          # zeros shown as the lowest color; labs.append(f'${sym}$  {nm}, {DSN[ds]}')
+            x = GWi[col].loc[ds].reindex(GL); rows.append(np.log2(np.maximum(x / x.median(), 2 ** -1.6)).values)   # zeros shown as the lowest color
+            labs.append(f'${sym}$  {nm}, {DSN[ds]}')
     M = np.array(rows)
     order = np.argsort(np.nanmean(M[:2], 0))
-    fig, ax = plt.subplots(figsize=(11.5, 5.0))
+    fig, ax = plt.subplots(figsize=(12.5, 5.4))
     im = ax.imshow(M[:, order], aspect='auto', cmap=L.DIV, norm=TwoSlopeNorm(0, -1.6, 1.6), interpolation='nearest')
     ax.set_yticks(range(len(labs))); ax.set_yticklabels(labs, fontsize=7.4)
     ax.set_xticks(range(len(GL))); ax.set_xticklabels(np.array(GL)[order], rotation=90, fontsize=6.6)
@@ -164,10 +174,11 @@ R.fig(fig_scatter(), f'Each point is one of the {len(GL)} glomeruli. Its value i
       '$q_g$: APL→KC synapses on the claws per claw PN synapse. The labelled glomeruli are the four lowest and five highest (mean of the two '
       'datasets, each relative to its median). ρ is the Spearman correlation over glomeruli.', 'The two weights the model uses, hemibrain against male CNS.')
 p = W['APL_to_PN_per_PN_to_KC']
-R.ul([f'**Bouton weight $p_g$** varies about 3–4-fold across glomeruli (10th to 90th percentile), in a similar order in both datasets '
+fold = lambda col: '–'.join(F(W[col]['10th-90th percentile, x median'][ds][1] / W[col]['10th-90th percentile, x median'][ds][0], 1) for ds in DS)
+R.ul([f'**Bouton weight $p_g$** varies {fold("APL_to_PN_per_PN_to_KC")}-fold across glomeruli (10th to 90th percentile; hemibrain, male CNS), in a similar order in both datasets '
       f'($\\rho_s$ = {F(p["spearman between datasets: min-max"][0], 2)}). Lowest: {", ".join(p["lowest (mean x median)"])}. '
       f'Highest: {", ".join(p["highest (mean x median)"])}.',
-      f'**Claw weight $q_g$** varies only about 2-fold ($\\rho_s$ = {F(W["APL_to_KC_per_claw_PN_synapse"]["spearman between datasets: min-max"][0], 2)}).',
+      f'**Claw weight $q_g$** varies only {fold("APL_to_KC_per_claw_PN_synapse")}-fold ($\\rho_s$ = {F(W["APL_to_KC_per_claw_PN_synapse"]["spearman between datasets: min-max"][0], 2)}).',
       f'The other four numbers agree less between the datasets ($\\rho_s$ {F(min(W[c]["spearman between datasets: min-max"][0] for c, *_ in QUANT[1:2] + QUANT[3:]), 2)}–'
       f'{F(max(W[c]["spearman between datasets: min-max"][0] for c, *_ in QUANT[1:2] + QUANT[3:]), 2)}). KC→APL on claws per claw PN synapse agrees least.'])
 
@@ -181,8 +192,81 @@ ap = PNW.groupby('dataset').APL_to_PN.sum(); ak = KW.groupby('dataset').APL_to_K
 R.table(['dataset', 'APL→PN in the calyx', 'APL→KC in the calyx', '$f$'],
         [[DSN[ds], f'{int(ap[ds]):,}', f'{int(ak[ds]):,}', F(fs[ds], 3)] for ds in DS], title='The bouton share $f$.',
         caption='About one in ten of APL\'s calyx output synapses is onto a PN; the rest are onto KCs.', num_cols=[1, 2, 3])
+# ---------------------------------------------------------------- 5 p_g per calyx, all connectomes
+R.section('The bouton weight in every connectome, per calyx')
+R.p('Yang asked for $p_g$ in each connectome, one row per calyx. $p_g$ needs no claws, so it can be computed for all four connectomes. '
+    'Each calyx is counted on its own: an APL↔PN synapse belongs to the calyx of its APL, and a PN→KC synapse to the calyx of the nearest '
+    'APL calyx synapse (each APL covers only its own calyx). The counts of the two calyces add up exactly to the per-PN table '
+    '`PN_calyx_weights_APL_vs_KC.csv` (corrected calyx). A few PN types reach both calyces (V_ilPN, VL1_ilPN, VP1d_il2PN and '
+    'some multiglomerular types); their synapses are split between the calyces accordingly.')
+GC = pd.read_csv(L.B + 'reports/data/r04v2_pg_per_calyx.csv')
+CALS = [('flywire', 'left'), ('flywire', 'right'), ('hemibrain', 'right'), ('malecns', 'left'), ('malecns', 'right'), ('banc', 'left'), ('banc', 'right')]
+CN = {'flywire': 'FlyWire', 'hemibrain': 'hemibrain', 'malecns': 'male CNS', 'banc': 'BANC'}
+cname = lambda d, sd: f'{CN[d]} {sd[0].upper()}'
+GC['cal'] = [cname(d, sd) for d, sd in zip(GC.dataset, GC.side)]
+ORDER = [cname(d, sd) for d, sd in CALS]
+PK = GC.pivot(index='glomerulus', columns='cal', values='PN_to_KC').reindex(columns=ORDER)
+G7 = PK.index[(PK.fillna(0) >= 200).all(1)].tolist()
+PG = GC.pivot(index='glomerulus', columns='cal', values='p_g').reindex(index=G7, columns=ORDER)
+SP = PG.corr(method='spearman')
+
+
+def fig_pg_cal():
+    rel = np.log2(np.maximum(PG / PG.median(), 2 ** -2))
+    order = rel.mean(1).sort_values().index
+    fig = plt.figure(figsize=(12.5, 7.6))
+    gs = fig.add_gridspec(2, 2, height_ratios=[1, 1.15], width_ratios=[1, 1.25], hspace=0.62, wspace=0.3)
+    ax = fig.add_subplot(gs[0, :])
+    im = ax.imshow(rel.loc[order].T.values, aspect='auto', cmap=L.DIV, norm=TwoSlopeNorm(0, -2, 2), interpolation='nearest')
+    ax.set_yticks(range(len(ORDER)), ORDER, fontsize=8.5)
+    ax.set_xticks(range(len(order)), order, rotation=90, fontsize=6.8)
+    for y in [1.5, 2.5, 4.5]: ax.axhline(y, color='white', lw=2)
+    ax.tick_params(length=0); ax.set_title(f'a  $p_g$ per calyx ({len(G7)} glomeruli with ≥ 200 PN→KC synapses in every calyx), sorted by the mean over calyces', loc='left', fontsize=10)
+    cb = L.cbar(fig, im, ax, 'log₂( $p_g$ ÷ median of the row )', fraction=0.02); cb.set_ticks([-2, -1, 0, 1, 2])
+    ax2 = fig.add_subplot(gs[1, 0])
+    im2 = ax2.imshow(SP.values, cmap=L.SEQ, vmin=0, vmax=1)
+    ax2.set_xticks(range(7), ORDER, rotation=60, ha='right', fontsize=8); ax2.set_yticks(range(7), ORDER, fontsize=8)
+    for i in range(7):
+        for j in range(7):
+            ax2.text(j, i, f'{SP.values[i, j]:.2f}', ha='center', va='center', fontsize=7, color='white' if SP.values[i, j] > 0.6 else L.INK)
+    ax2.set_title('b  Spearman ρ between calyces, over glomeruli', loc='left', fontsize=10); ax2.tick_params(length=0)
+    ax3 = fig.add_subplot(gs[1, 1])
+    for k, cl in enumerate(ORDER):
+        v = PG[cl].values
+        ax3.scatter(np.full(len(v), k) + np.random.default_rng(k).uniform(-0.18, 0.18, len(v)), v * 100, s=9, color=L.DS_COLOR[GC[GC.cal == cl].dataset.iloc[0]], lw=0, alpha=0.8)
+        ax3.plot([k - 0.3, k + 0.3], [np.median(v) * 100] * 2, color=L.INK, lw=1.5)
+    ax3.set_xticks(range(7), ORDER, rotation=60, ha='right', fontsize=8)
+    ax3.set_ylabel('$p_g$ × 100 (APL→PN per 100 PN→KC synapses)'); ax3.set_title('c  values per calyx (bar = median)', loc='left', fontsize=10)
+    ax3.set_ylim(0, None)
+    return fig
+
+
+R.fig(fig_pg_cal(), '**a**, Each row is one calyx and each column one glomerulus. Color is $p_g$ (APL→PN synapses on the glomerulus\'s PNs in '
+      'that calyx, per PN→KC synapse of those PNs there) divided by the row\'s median, on a log₂ scale clipped at ±2 (4× above or below); a '
+      'value of 0 takes the darkest blue. White lines separate the connectomes. **b**, Rank correlation of the rows of a over the same '
+      'glomeruli. **c**, The raw values: each dot is one glomerulus; the dot color marks the connectome.', '$p_g$ per calyx in every connectome.')
+same = [SP.loc['FlyWire L', 'FlyWire R'], SP.loc['male CNS L', 'male CNS R'], SP.loc['BANC L', 'BANC R']]
+iu = np.triu_indices(7, 1)
+pairs = [(ORDER[i], ORDER[j]) for i, j in zip(*iu)]
+cross = [SP.loc[a, b] for a, b in pairs if a.split(' ')[0] != b.split(' ')[0]]
+rows = []
+for cl in ORDER:
+    t = GC[GC.cal == cl]
+    rel = PG[cl] / PG[cl].median()
+    rows.append([cl, len(t), f'{int(t.PN_to_KC.sum()):,}', f'{int(t.APL_to_PN.sum()):,}', F(100 * t.APL_to_PN.sum() / t.PN_to_KC.sum(), 2),
+                 F(100 * PG[cl].median(), 2), f'{F(rel.quantile(.1), 2)}–{F(rel.quantile(.9), 2)}'])
+R.table(['Calyx', 'glomeruli', 'PN→KC', 'APL→PN', 'all glomeruli: APL→PN per 100 PN→KC', f'median $p_g$ × 100 ({len(G7)} glomeruli)',
+         '10th–90th percentile (× median)'], rows, title='The bouton weight per calyx.',
+        caption='Uniglomerular PNs only, corrected calyx. Columns 2–5 use every glomerulus of the calyx; the last two use the glomeruli of Figure 4.',
+        num_cols=[1, 2, 3, 4, 5, 6])
+lev = {cl: 100 * GC[GC.cal == cl].APL_to_PN.sum() / GC[GC.cal == cl].PN_to_KC.sum() for cl in ORDER}
+R.ul([f'**The pattern is shared across connectomes.** Over the {len(G7)} glomeruli the calyces correlate at $\\rho_s$ {F(min(cross), 2)}–{F(max(cross), 2)} '
+      f'between connectomes, and {", ".join(F(x, 2) for x in same)} between the two calyces of FlyWire, male CNS and BANC.',
+      f'**The level differs between calyces**, even within one brain: APL→PN per 100 PN→KC synapses ranges {F(min(lev.values()), 2)}–'
+      f'{F(max(lev.values()), 2)} (Table 5, all glomeruli), and BANC has the fewest. The pattern across glomeruli, not the level, is what '
+      'the model uses ($p_g$ enters relative to its mean).',
+      'The glomeruli at the two ends are mostly the same as in Section 3 (Figure 3).'])
 R.box('Caveats', ['Synapse counts stand in for synaptic strength. Nothing here measures how strong a single APL→PN or APL→KC synapse is.',
-                  'Male CNS official calyx ROIs miss part of the posterior calyx, so its calyx counts are lower than hemibrain\'s (Report 02). '
-                  'The ratios are less affected, because numerator and denominator lose synapses together.',
+                  'The model numbers (Sections 2–4) pool the two male CNS calyces, because the per-glomerulus weights are computed per dataset.',
                   'Glomeruli missing from the response tables still have weights, but they carry no odor input in the model.'], 'caveat')
 R.save()

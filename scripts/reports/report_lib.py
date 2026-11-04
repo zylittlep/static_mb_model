@@ -161,6 +161,23 @@ class Report:
                           f'<figcaption><strong>Figure {self.n_fig}. {self.t(title)}</strong> {self.t(caption)}</figcaption></figure>')
         return self.n_fig
 
+    def img(self, src, caption, title, width=100, max_w=1800, crop=None):
+        """Numbered figure from an existing PNG (path or PIL image), optionally cropped (left, top, right, bottom) and
+        downscaled to max_w pixels wide. Saved to reports/figures/ and embedded. Returns its number."""
+        from PIL import Image
+        im = Image.open(src) if isinstance(src, str) else src
+        if crop: im = im.crop(crop)
+        im = im.convert('RGB')
+        if im.width > max_w: im = im.resize((max_w, round(im.height * max_w / im.width)), Image.LANCZOS)
+        self.n_fig += 1
+        buf = io.BytesIO(); im.save(buf, format='PNG', optimize=True); data = buf.getvalue()
+        os.makedirs(FIGDIR, exist_ok=True)
+        with open(f'{FIGDIR}{self.file}_figure{self.n_fig}.png', 'wb') as fh: fh.write(data)
+        b64 = base64.b64encode(data).decode()
+        self.parts.append(f'<figure id="fig{self.n_fig}" style="width:{width}%"><img src="data:image/png;base64,{b64}" alt="Figure {self.n_fig}">'
+                          f'<figcaption><strong>Figure {self.n_fig}. {self.t(title)}</strong> {self.t(caption)}</figcaption></figure>')
+        return self.n_fig
+
     def table(self, header, rows, caption=None, title=None, cls='', num_cols=None):
         self.n_tab += 1
         num_cols = set(num_cols or [])

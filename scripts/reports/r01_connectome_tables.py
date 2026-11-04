@@ -7,8 +7,10 @@ import matplotlib.pyplot as plt
 from scipy.stats import spearmanr
 import report_lib as L
 L.style()
+L.DATE = '2026-11-03'
 F = L.fmt
 B = L.B
+BD = B + 'with_outside_ROI_synapses/'      # corrected calyx: official ROIs + synapses just outside them (Yang, 2026-11-03)
 DS4 = ['flywire', 'hemibrain', 'malecns', 'banc']
 LAB = L.DS_LABEL
 LOBES = {'VL', 'ML', 'aL', "a'L", 'bL', "b'L", 'gL'}
@@ -17,8 +19,9 @@ C_IN, C_OUT = L.GREEN, L.PURPLE        # partner -> APL, APL -> partner (this re
 # ---------------------------------------------------------------- data
 T = {}
 for ds in DS4:
-    t = pd.read_csv(f'{B}{ds}_APL_MB_synapses.csv.gz', usecols=['direction', 'apl_id', 'apl_side', 'apl_instance', 'mb_region', 'partner_type',
-                                                              'partner_class', 'mb_compartment', 'mb_compartment_source', 'claw_id', 'bouton_id'],
+    t = pd.read_csv(f'{BD}{ds}_APL_MB_synapses.csv.gz', usecols=['direction', 'apl_id', 'apl_side', 'apl_instance', 'mb_region', 'partner_type',
+                                                               'partner_class', 'mb_compartment', 'mb_compartment_source', 'claw_id', 'bouton_id',
+                                                               'mb_region_source'],
                     low_memory=False)
     t['out'] = t.direction.str.startswith('APL_output')
     t['region3'] = np.where(t.mb_region == 'CA', 'calyx', np.where(t.mb_region == 'PED', 'peduncle', np.where(t.mb_region.isin(LOBES), 'lobes', 'other')))
@@ -28,17 +31,21 @@ for ds in DS4:
                              pt.eq('') & pc.eq('')],
                             ['Kenyon cells', 'Antennal-lobe PNs', 'Dopaminergic neurons', 'MB output neurons', 'Unlabeled partner'], 'Other labeled')
     T[ds] = t
-KCW = pd.read_csv(B + 'KC_weights_APL_PN_per_KC.csv')
-PNW = pd.read_csv(B + 'PN_calyx_weights_APL_vs_KC.csv')
+KCW = pd.read_csv(BD + 'KC_weights_APL_PN_per_KC.csv')
+PNW = pd.read_csv(BD + 'PN_calyx_weights_APL_vs_KC.csv')
 VAL = json.load(open(B + 'malecns_compartment_validation.json'))
 LVAL = json.load(open(B + 'lobe_compartment_validation.json'))
 N = {ds: len(T[ds]) for ds in DS4}
-assert N == {'flywire': 277252, 'hemibrain': 241853, 'malecns': 439589, 'banc': 67241}, N
+N_OFF = {ds: int((T[ds].mb_region_source == 'official ROI').sum()) for ds in DS4}
+assert N_OFF == {'flywire': 277252, 'hemibrain': 241853, 'malecns': 439589, 'banc': 67241}, N_OFF
+ADD = {ds: N[ds] / N_OFF[ds] - 1 for ds in DS4}
 
 R = L.Report('01', 'Where do the APL synapse tables come from, what does one row mean, how are synapses counted, and how many synapses does '
              'APL make with each kind of partner in each part of the mushroom body?',
              inputs=['Public synapse tables of four adult fly connectomes (downloaded 2026-10-07; sources in Table 2)'],
-             outputs=['`<dataset>_APL_MB_synapses.csv.gz`: one row per APL synapse in the mushroom body (four datasets)',
+             outputs=['All in `with_outside_ROI_synapses/` (the corrected version used from 2026-11-03; the official-ROI files of the same names '
+                      'in the main folder are unchanged)',
+                      '`<dataset>_APL_MB_synapses.csv.gz`: one row per APL synapse in the mushroom body (four datasets)',
                       '`KC_weights_APL_PN_per_KC.csv`: per Kenyon cell, its PN input and its synapses with APL (calyx and whole mushroom body)',
                       '`PN_calyx_weights_APL_vs_KC.csv`, `PN_MB_weights_APL_vs_KC.csv`: per projection neuron, its synapses onto KCs and with APL',
                       '`summary_counts_by_compartment_and_partner_class.csv`, the scatter plots `scatter*.png`'],
@@ -48,8 +55,12 @@ R = L.Report('01', 'Where do the APL synapse tables come from, what does one row
                       '`scripts/reports/r01_connectome_tables.py` (this report)'])
 
 R.p('Every later step starts from the tables described here. Reports 02 and 03 add structure to them (claws, boutons, odor responses); '
-    'Reports 04 to 11 use the hemibrain and male CNS parts of them to build and test a model. This report uses the tables with the official '
-    'regions of interest (ROIs) only. Report 02 describes the second version, which adds synapses that lie just outside the official ROIs.')
+    'Reports 04 to 11 use the hemibrain and male CNS parts of them to build and test a model.')
+R.p('**Which version.** Since 2026-11-03 the reports use the corrected tables: every synapse inside the official mushroom body regions of '
+    'interest (ROIs), plus synapses just outside them that belong to the same calyx, peduncle or lobe (within 3 µm; Report 02 gives the '
+    'rule). The male CNS calyx ROI misses the back of the calyx, so this matters most there. The added rows are '
+    + ', '.join(f'{L.pct(ADD[ds], 1)} ({LAB[ds]})' for ds in DS4) + ' of each table. The official-ROI-only tables are kept unchanged '
+    'next to them, and the earlier version of this report used them.')
 
 R.symbols([
     ('i,\\ j', 'Two neurons; $i$ presynaptic, $j$ postsynaptic', 'neuron IDs of each dataset'),
@@ -73,18 +84,19 @@ R.p('A connectome is a map of every neuron and synapse in a piece of nervous tis
 R.eq('w_{ij}(\\mathcal{R}) \\;=\\; \\#\\{(t, s)\\ :\\ t \\text{ is a T-bar of } i,\\ s \\text{ is a PSD of } j \\text{ facing } t,\\ s \\in \\mathcal{R}\\}',
      'A synapse belongs to region $\\mathcal{R}$ by the position of its postsynaptic site (hemibrain, male CNS) or by the dataset\'s own neuropil label (FlyWire, BANC).')
 R.p('The APL neuron (anterior paired lateral) is one large GABAergic neuron per brain hemisphere. It covers the whole mushroom body, '
-    'receives input from the Kenyon cells and inhibits them back. Every APL synapse inside a mushroom body ROI was kept, in both '
-    'directions and with every partner.')
+    'receives input from the Kenyon cells and inhibits them back. Every APL synapse inside a mushroom body ROI, or just outside it '
+    '(see above), was kept, in both directions and with every partner.')
 R.table(['Dataset', 'Animal', 'Source table', 'Filter', 'APLs', 'Rows'],
         [['FlyWire 783 (FAFB)', 'female, whole brain', 'Codex "Princeton" synapse table, v783',
-          'proofread neurons, no autapses, ≥5 synapses per neuron pair (Codex default)', '2 (left, right)', f'{N["flywire"]:,}'],
+          'proofread neurons, no autapses, ≥5 synapses per neuron pair (Codex default)', '2 (left, right)', f'{N["flywire"]:,} (+{L.pct(ADD["flywire"], 1)})'],
          ['Hemibrain v1.2', 'female, central brain, right side', 'neuPrint release feather files (synapse partners and points)',
-          'release confidence thresholds', '1 (APL_R; the left APL is outside the volume)', f'{N["hemibrain"]:,}'],
+          'release confidence thresholds', '1 (APL_R; the left APL is outside the volume)', f'{N["hemibrain"]:,} (+{L.pct(ADD["hemibrain"], 1)})'],
          ['Male CNS v1.0', 'male, brain and nerve cord', 'neuPrint release, `minconf-0.5` partner table', 'synapse confidence ≥ 0.5',
-          '2 (APL_L, APL_R)', f'{N["malecns"]:,}'],
+          '2 (APL_L, APL_R)', f'{N["malecns"]:,} (+{L.pct(ADD["malecns"], 1)})'],
          ['BANC 888', 'female, brain and nerve cord', 'BANC v2 enriched synapse table', 'synapse size ≥ 5 (as in the BANC paper)', '2 (left, right)',
-          f'{N["banc"]:,}']],
-        title='The four connectomes.', caption='Rows = APL synapses inside the official mushroom body ROIs. Every source is a public, '
+          f'{N["banc"]:,} (+{L.pct(ADD["banc"], 1)})']],
+        title='The four connectomes.', caption='Rows = APL synapses in the mushroom body, corrected version; in brackets, how many rows the '
+        'synapses just outside the official ROIs add. Every source is a public, '
         'no-login download. Hemibrain and male CNS come from the FlyEM team (Janelia), FlyWire from the FlyWire consortium (Princeton), '
         'BANC from the BANC consortium. The model in Reports 05 to 11 uses only hemibrain and male CNS (Yang, 2026-10-21).',
         num_cols=[5])
@@ -117,30 +129,46 @@ R.p('The mushroom body has three parts. The **calyx** (CA) is where projection n
     'α, α′, β, β′ and γ lobes; FlyWire and BANC only into a vertical lobe (VL: α + α′) and a medial lobe (ML: β + β′ + γ).')
 
 
+REG3 = ['calyx', 'peduncle', 'lobes']
+APL_MK = {'L': 'o', 'R': 's'}
+
+
 def fig_regions():
-    fig, axs = plt.subplots(1, 4, figsize=(10.2, 3.0), sharey=False)
+    from matplotlib.lines import Line2D
+    from matplotlib.patches import Patch
+    fig, axs = plt.subplots(1, 4, figsize=(10.4, 3.1), sharey=False)
     for ax, ds in zip(axs, DS4):
-        t = T[ds]; nap = t.apl_id.nunique()
-        g = t.groupby(['region3', 'out']).size().unstack().reindex(['calyx', 'peduncle', 'lobes']) / nap / 1000
+        t = T[ds]; side = t.apl_side.fillna('R').astype(str).str[0].str.upper()
+        apls = sorted(side.unique()); nap = len(apls)
+        per = t.groupby([side.rename('side'), 'region3', 'out']).size() / 1000
         x = np.arange(3)
-        ax.bar(x - 0.2, g[False], 0.38, color=C_IN, label='partner → APL (APL input)')
-        ax.bar(x + 0.2, g[True], 0.38, color=C_OUT, label='APL → partner (APL output)')
-        ax.set_xticks(x, ['calyx', 'peduncle', 'lobes']); ax.set_title(f'{LAB[ds]} ({nap} APL{"s" if nap > 1 else ""})')
+        for j, (out, col) in enumerate([(False, C_IN), (True, C_OUT)]):
+            vals = np.array([[per.get((a, r, out), 0) for r in REG3] for a in apls])
+            xs = x + (j - 0.5) * 0.4
+            ax.bar(xs, vals.mean(0), 0.38, color=col)
+            for i, a in enumerate(apls):
+                ax.scatter(xs + (i - (nap - 1) / 2) * 0.12, vals[i], s=20, marker=APL_MK[a], facecolor='white', edgecolor=L.INK,
+                           lw=0.9, zorder=3)
+        ax.set_xticks(x, REG3); ax.set_title(f'{LAB[ds]} ({nap} APL{"s" if nap > 1 else ""})')
         ax.yaxis.grid(True, color=L.GRID, lw=0.6); ax.set_axisbelow(True)
         if ds == 'flywire': ax.set_ylabel('APL synapses per APL (thousands)')
-    fig.legend(*axs[0].get_legend_handles_labels(), loc='lower center', ncol=2, fontsize=8, bbox_to_anchor=(0.5, -0.04))
-    fig.tight_layout(rect=(0, 0.06, 1, 1)); return fig
+    h = [Patch(color=C_IN, label='partner → APL (APL input), mean of APLs'), Patch(color=C_OUT, label='APL → partner (APL output), mean of APLs'),
+         Line2D([], [], marker='o', ls='', mfc='white', mec=L.INK, label='left APL'),
+         Line2D([], [], marker='s', ls='', mfc='white', mec=L.INK, label='right APL')]
+    fig.legend(handles=h, loc='lower center', ncol=4, fontsize=8, bbox_to_anchor=(0.5, -0.05))
+    fig.tight_layout(rect=(0, 0.07, 1, 1)); return fig
 
 
 def share(ds, reg, out):
     t = T[ds]; return (t[(t.region3 == reg)].out == out).sum() / max(1, (t.region3 == reg).sum())
 
 
-R.fig(fig_regions(), 'Each panel is one connectome. Bars count the rows of `<dataset>_APL_MB_synapses.csv.gz` in each region, divided by '
-      'the number of APLs in the dataset (so the height is synapses of one average APL). Green = synapses onto APL (APL is postsynaptic), '
-      'purple = synapses made by APL (APL is presynaptic). Lobes = all lobe ROIs together. y-axis: thousands of T-bar → PSD pairs. '
-      'The y-axes differ between panels: BANC has far fewer synapses (Section 1).',
-      'APL synapses per region and direction, official ROIs.')
+R.fig(fig_regions(), 'Each panel is one connectome. Bars count the rows of `<dataset>_APL_MB_synapses.csv.gz` (corrected version) in each '
+      'region, averaged over the dataset\'s APLs, so the height is the synapses of one average APL. The white markers on each bar are the '
+      'single APLs, one per hemisphere: circle = left APL, square = right APL. Hemibrain has only the right APL, so its marker sits on the bar. '
+      'Green = synapses onto APL (APL is postsynaptic), purple = synapses made by APL (APL is presynaptic). Lobes = all lobe regions together. '
+      'y-axis: thousands of T-bar → PSD pairs. The y-axes differ between panels: BANC has far fewer synapses (Section 1).',
+      'APL synapses per region and direction, with each APL shown.')
 R.p(f'In every dataset APL makes more synapses than it receives in the calyx (APL output share of calyx APL synapses: '
     + ', '.join(f'{LAB[ds]} {L.pct(share(ds, "calyx", True))}' for ds in DS4) + '). In the lobes the two directions are closer to equal.')
 
@@ -235,48 +263,84 @@ R.fig(fig_kc_hist(), 'Distributions over all KCs of a dataset (both hemispheres 
       'Each line is one connectome (colors in the legend, with the median). x-axis: synapses per KC (T-bar → PSD pairs); values above the '
       'axis end (300 or 50) are piled into the last bin. y-axis: fraction of the dataset\'s KCs per bin (bin width 6 synapses in the first '
       'panel, 1 in the others). The peaks at 0 are mostly γd and αβp KCs, whose dendrites sit in the accessory calyces outside the calyx ROI: '
-      'they have no PN input and no APL synapse in the main calyx (2–5% of KCs in FlyWire, hemibrain and male CNS; 12% in BANC).',
+      'they have no PN input and no APL synapse in the main calyx ('
+      + ', '.join(f'{L.pct((KCW[KCW.dataset == ds].PN_to_KC_calyx == 0).mean())} of KCs in {LAB[ds]}' for ds in DS4) + ').',
       'How many PN and APL synapses a Kenyon cell has in the calyx.')
 
 
 def fig_kc_recip():
-    fig, axs = plt.subplots(1, 4, figsize=(10.4, 2.9))
+    from scipy.stats import gaussian_kde
+    from matplotlib.colors import LinearSegmentedColormap
+    cmap = LinearSegmentedColormap.from_list('dens', ['#a9cdf5', '#3987e5', '#1c5cab', '#0d366b'])
+    rj = np.random.default_rng(0)
+    fig, axs = plt.subplots(1, 4, figsize=(10.4, 3.0))
     for ax, ds in zip(axs, DS4):
         k = KCW[KCW.dataset == ds]
-        x, y = k.KC_to_APL_calyx.values, k.APL_to_KC_calyx.values
+        x, y = k.KC_to_APL_calyx.values.astype(float), k.APL_to_KC_calyx.values.astype(float)
         mx = np.percentile(np.r_[x, y], 99.5)
-        hb = ax.hexbin(x, y, gridsize=26, extent=(0, mx, 0, mx), cmap=L.SEQ, mincnt=1, bins='log', linewidths=0)
+        xj, yj = x + rj.uniform(-0.35, 0.35, len(x)), y + rj.uniform(-0.35, 0.35, len(y))
+        d = gaussian_kde(np.vstack([xj, yj]))(np.vstack([xj, yj])); d = d / d.max()
+        o = np.argsort(d)
+        sc = ax.scatter(xj[o], yj[o], c=d[o], s=4, cmap=cmap, vmin=0, vmax=1, lw=0, rasterized=True)
         ax.plot([0, mx], [0, mx], color=L.GRAY, lw=0.8, ls='--')
         r = spearmanr(x, y)[0]
         ax.set_title(f'{LAB[ds]}\n$\\rho_s$ = {r:.2f}, {len(k):,} KCs')
         ax.set_xlabel('KC → APL synapses per KC (calyx)')
         if ds == 'flywire': ax.set_ylabel('APL → KC synapses per KC (calyx)')
-        ax.set_xlim(0, mx); ax.set_ylim(0, mx)
-        L.cbar(fig, hb, ax, 'KCs per hexagon (log scale)')
+        ax.set_xlim(-0.5, mx); ax.set_ylim(-0.5, mx)
+        L.cbar(fig, sc, ax, 'density of KCs (max = 1)')
     fig.tight_layout(); return fig
 
 
-R.fig(fig_kc_recip(), 'Each panel is one connectome; each KC is placed by its calyx synapses onto APL (x) and from APL (y). Hexagons are colored '
-      'by how many KCs fall in them, on a log color scale (color bar right of each panel; white = no KC). Dashed line: equal counts. Axes '
-      'end at the 99.5th percentile. $\\rho_s$ = Spearman rank correlation over KCs. KCs that give APL many synapses also receive many '
+R.fig(fig_kc_recip(), 'Each panel is one connectome; each dot is one KC, placed by its calyx synapses onto APL (x) and from APL (y). The '
+      'counts are whole numbers, so each dot is shifted by a random amount of up to ±0.35 to keep KCs with the same counts from hiding '
+      'each other. Color shows how crowded that part of the plot is (Gaussian kernel density of the dots, scaled so the densest point is '
+      '1; dark = many KCs). Dashed line: equal counts. Axes end at the 99.5th percentile. $\\rho_s$ = Spearman rank correlation over KCs. KCs that give APL many synapses also receive many '
       'from it: the connection is reciprocal at the level of single cells.', 'Reciprocity between KCs and APL in the calyx.')
 
 
+def glabel(t):
+    t = str(t)
+    return t if t.startswith('M_') or '_' not in t else t.split('_')[0]
+
+
+PN_LAB = {}
+
+
 def fig_pn():
-    fig, axs = plt.subplots(1, 4, figsize=(10.4, 2.9))
-    for ax, ds in zip(axs, DS4):
-        p = PNW[PNW.dataset == ds]
-        ax.scatter(p.PN_to_KC, p.APL_to_PN, s=10, color=L.DS_COLOR[ds], alpha=0.75, lw=0)
-        r = spearmanr(p.PN_to_KC, p.APL_to_PN)[0]
-        ax.set_title(f'{LAB[ds]}\n$\\rho_s$ = {r:.2f}, {len(p)} PNs')
-        ax.set_xlabel('PN → KC synapses per PN (calyx)')
-        if ds == 'flywire': ax.set_ylabel('APL → PN synapses per PN (calyx)')
+    from adjustText import adjust_text
+    from matplotlib.lines import Line2D
+    fig, axs = plt.subplots(2, 2, figsize=(10.4, 8.6))
+    for ax, ds in zip(axs.flat, DS4):
+        p = PNW[PNW.dataset == ds].reset_index(drop=True)
+        x, y = p.PN_to_KC.values.astype(float), p.APL_to_PN.values.astype(float)
+        b1, b0 = np.polyfit(x, y, 1); res = y - (b0 + b1 * x)
+        big = set(np.argsort(-x)[:5]) | set(np.argsort(-y)[:5]); dev = set(np.argsort(-np.abs(res))[:5])
+        PN_LAB[ds] = dict(big=sorted(big, key=lambda i: -x[i]), dev=sorted(dev, key=lambda i: -abs(res[i])), p=p, res=res, fit=(b0, b1))
+        ax.scatter(x, y, s=12, color=L.DS_COLOR[ds], alpha=0.6, lw=0, zorder=2)
+        xs = np.array([0, x.max() * 1.03]); ax.plot(xs, b0 + b1 * xs, color=L.GRAY, lw=1, ls='--', zorder=1)
+        for i in big - dev:
+            ax.scatter(x[i], y[i], s=40, facecolor='none', edgecolor=L.INK, lw=1.2, zorder=3)
+        for i in dev:
+            ax.scatter(x[i], y[i], s=46, facecolor='none', edgecolor=L.INK, lw=1.3, zorder=4, marker='D')
+        tx = [ax.text(x[i], y[i], glabel(p.pn_type[i]), fontsize=7.5, color=L.INK, zorder=5) for i in sorted(big | dev)]
+        r = spearmanr(x, y)[0]
+        ax.set_title(f'{LAB[ds]}: $\\rho_s$ = {r:.2f}, {len(p)} PNs', fontsize=10)
+        ax.set_xlabel('PN → KC synapses per PN (calyx)'); ax.set_ylabel('APL → PN synapses per PN (calyx)')
         ax.set_xlim(left=0); ax.set_ylim(bottom=0)
-    fig.tight_layout(); return fig
+        adjust_text(tx, ax=ax, arrowprops=dict(arrowstyle='-', color=L.GRAY, lw=0.5), expand=(1.3, 1.5))
+    h = [Line2D([], [], ls='--', color=L.GRAY, label='least-squares line'),
+         Line2D([], [], marker='o', ls='', mfc='none', mec=L.INK, label='top 5 by PN → KC or by APL → PN'),
+         Line2D([], [], marker='D', ls='', mfc='none', mec=L.INK, label='top 5 farthest from the line')]
+    fig.legend(handles=h, loc='lower center', ncol=3, fontsize=8.5, bbox_to_anchor=(0.5, -0.01))
+    fig.tight_layout(rect=(0, 0.035, 1, 1)); return fig
 
 
 R.fig(fig_pn(), 'Each dot is one antennal-lobe PN with at least one calyx synapse onto a KC. x: its synapses onto KCs in the calyx; y: '
-      'synapses it receives from APL in the calyx. $\\rho_s$ = Spearman rank correlation over PNs. PNs with more output to KCs (more or '
+      'synapses it receives from APL in the calyx. Dashed line: least-squares line over the PNs of that dataset. Labelled PNs (glomerulus, '
+      'or the type name for multiglomerular PNs): circles are the 5 PNs with the most synapses onto KCs and the 5 with the most '
+      'synapses from APL (often the same PNs); diamonds are the 5 PNs farthest above or below the line, i.e. with the most or '
+      'least APL input for their output. Table 6 lists them with their numbers. $\\rho_s$ = Spearman rank correlation over PNs. PNs with more output to KCs (more or '
       'bigger boutons) get more APL inhibition, roughly in proportion. Report 04 uses the ratio of the two, per glomerulus, as the '
       'bouton weight $p_g$.', 'APL input to each projection neuron vs its output to Kenyon cells, calyx.')
 R.p('Table 5 gives the means behind these figures.')
@@ -286,15 +350,27 @@ R.table(['Dataset', 'PN→KC per KC', 'KC→APL per KC', 'APL→KC per KC', 'KC�
          'PN→KC per PN', 'PN→APL per PN', 'APL→PN per PN'],
         [[LAB[ds]] + [F(v, 1) for v in m.loc[ds]] + [F(v, 0) for v in pm.loc[ds]] for ds in DS4],
         title='Mean synapses per cell.', caption='First five columns: per KC (calyx unless "whole MB"); last three: per antennal-lobe PN, calyx. '
-        'FlyWire counts here have no per-pair threshold (Section 1). Male CNS calyx counts per KC are lower than hemibrain\'s partly because '
-        'its calyx ROI misses the back of the calyx (Report 02).', num_cols=list(range(1, 9)))
+        'FlyWire counts here have no per-pair threshold (Section 1). Even with the synapses outside the calyx ROI added back, male CNS '
+        'KC↔APL calyx counts per KC stay below hemibrain\'s (Report 02).', num_cols=list(range(1, 9)))
+rows = []
+for ds in DS4:
+    d = PN_LAB[ds]; p = d['p']
+    for i in sorted(set(d['big']) | set(d['dev']), key=lambda i: -p.PN_to_KC[i]):
+        grp = 'both' if (i in d['big'] and i in d['dev']) else ('most synapses' if i in d['big'] else 'farthest from the line')
+        rows.append([LAB[ds], grp, glabel(p.pn_type[i]), f'`{p.pn_type[i]}`', f'{int(p.PN_to_KC[i]):,}', int(p.APL_to_PN[i]),
+                     F(p.APL_to_PN[i] / max(p.PN_to_KC[i], 1) * 100, 1), F(d['res'][i], 0, True)])
+R.table(['Dataset', 'group', 'label', 'PN type', 'PN→KC', 'APL→PN', 'APL→PN per 100 PN→KC', 'distance from the line (APL→PN)'], rows,
+        title='The labelled PNs of Figure 5.', caption='"Most synapses": the union of the 5 PNs with the most PN→KC synapses and the 5 with the '
+        'most APL→PN synapses, sorted by PN→KC. "Farthest from the line": the 5 PNs with the largest distance above (+) or below (−) the '
+        'least-squares line, in APL→PN synapses. "Both": in both groups. Each row is one PN, sorted by PN→KC within a dataset. Calyx '
+        'synapses, corrected version.', num_cols=[4, 5, 6, 7])
 
 # ---------------------------------------------------------------- 6 caveats
 R.section('Caveats')
 R.ul(['**Detection differs between datasets.** Each connectome has its own synapse detector and thresholds, so absolute counts are not '
       'comparable across datasets; ratios and ranks within a dataset are safer. The model (Reports 05–11) works with ratios and ranks.',
       '**Male CNS calyx ROI.** The official CA(L)/CA(R) ROIs leave out the posterior part of each calyx: 18% (left) and 9% (right) of PN↔APL '
-      'and 33% / 14% of KC↔APL calyx synapses fall outside them. The second version adds them back (Report 02).',
+      'and 33% / 14% of KC↔APL calyx synapses fall outside them. This report uses the corrected version, which adds them back (Report 02).',
       '**Untyped partners.** Partners without a type are 9% of hemibrain rows, 10% of male CNS rows and 39% of BANC rows.',
       '**Hemibrain types.** `partner_type` is the official neuPrint v1.2 type. A compiled table had labelled about 200 α′β′ KCs as γ; '
       'that was corrected on 2026-10-10.',

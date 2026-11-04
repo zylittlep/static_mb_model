@@ -9,7 +9,7 @@ from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import dijkstra
 import apl_local_model as lm
 tc = lm.tc
-TAG = '_outside_roi' if os.environ.get('APL_VARIANT', '') == 'outside_roi' else ''
+TAG = {'outside_roi': '_outside_roi', 'claws_v2m2': '_claws_v2m2'}.get(os.environ.get('APL_VARIANT', ''), '')
 OD = '/mnt/project-files/apl_synapses/reports/data/'
 LAMS = [500, 200, 100, 50, 25, 10, 5, 2, 1]
 rng = np.random.default_rng(11)

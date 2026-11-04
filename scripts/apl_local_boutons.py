@@ -44,7 +44,7 @@ def geometry_b(k, mb):
     cl = abm.CLAWS[ds]; cl = cl[cl.kc_id.isin(kix)].copy()
     cl['glom'] = [abm.uni(x, ds) for x in cl.main_PN_type]
     S = cl.groupby('kc_id').n_PN_synapses.sum()
-    cu = cl[cl.glom != '']
+    cu = cl[(cl.glom != '') & cl.main_bouton_id.notna()]       # new claws (claws_v2m2): 8 of 33,584 claws have no bouton; left out here
     bouts = sorted(cu.main_bouton_id.unique()); bix = {b: i for i, b in enumerate(bouts)}
     B = csr_matrix((cu.n_PN_synapses.values / S.reindex(cu.kc_id).values, (cu.kc_id.map(kix).values, cu.main_bouton_id.map(bix).values)),
                    shape=(len(ids), len(bouts))).toarray()

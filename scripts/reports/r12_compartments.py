@@ -1,21 +1,30 @@
-"""Report 12: APL with its signals confined to its calyx sub-arbors (apl_compartment_model.py), step by step, with results in both
-versions of the tables and the local model of Report 11 as reference."""
+"""Report 12: APL with its signals confined to its calyx sub-arbors (apl_compartment_model.py), step by step, with the local model of
+Report 11 as reference. Rebuilt 2026-11-04 for Yang's revision: main results use the corrected calyx, the new claws and the new ORN table
+(claws_v2m2); the earlier official-ROI version is compared at the end. Old version in archive_2026-11-03/."""
 import sys, json
 sys.path.insert(0, '/mnt/project-files/apl_synapses/scripts'); sys.path.insert(0, '/mnt/project-files/apl_synapses/scripts/reports')
 import numpy as np, pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import report_lib as L
-L.style(); L.DATE = '2026-10-24'
+L.style(); L.DATE = '2026-11-04'
 F = L.fmt
-OWS = {'official': L.B + 'odor_weighted/', 'outside': L.B + 'with_outside_ROI_synapses/odor_weighted/'}
-TAGS = {'official': '', 'outside': '_outside_roi'}
+OWS = {'main': L.B + 'with_outside_ROI_synapses/claws_v2m2/odor_weighted/', 'earlier': L.B + 'odor_weighted/'}
+TAGS = {'main': '_claws_v2m2', 'earlier': ''}
 DD = L.B + 'reports/data/'
 MBS = ['hemibrain R', 'malecns L', 'malecns R']; MBN = {'hemibrain R': 'hemibrain R', 'malecns L': 'male CNS L', 'malecns R': 'male CNS R'}
 MBC = {'hemibrain R': L.DS_COLOR['hemibrain'], 'malecns L': L.DS_COLOR['malecns'], 'malecns R': '#7ccfa9'}
 MK = {'hemibrain R': 'o', 'malecns L': 's', 'malecns R': '^'}
 RNS = ['ORN', 'GH146']
-CORR, CEIL = 0.92, 0.84
+RO = pd.read_csv(OWS['main'] + 'TNT_rank_order.csv'); _ro = RO[(RO.source == 'data') & (RO.responses == 'raw responses')].set_index('comparison').spearman
+CORR = round(float(_ro['half vs half, TNT vs TNT3c'] / np.sqrt(_ro['half vs half, within TNT3c (mean of 1000 splits)'] * _ro['half vs half, within TNT'])), 2)
+TVM = json.load(open(OWS['main'] + 'TNT_vs_model_summary.json'))
+CEIL = round(TVM['fits']['threshold 1.0, ORN']['ceiling for r with a model (sqrt of that)'], 2)
+NKC = TVM['model']['mushroom bodies (KCs)']
+FSH = json.load(open(OWS['main'] + 'APL_block_model_summary.json'))['bouton_share_of_APL_calyx_output_synapses']
+GEO = json.load(open(L.B + 'with_outside_ROI_synapses/claws_v2m2/apl_geodesic/APL_geodesic_summary.json'))['apl']
+DIFF_SUB = [v['sub-arbors: mean geodesic distance (µm) between two synapses in the same / different named sub-arbors'][1] for v in GEO.values()]
+SMALL = [v['calyx sub-arbors holding >= 2% of these synapses, and their shares'].get('small pieces', 0) for v in GEO.values()]
 COMP = '#a8820e'
 PAL = ['#2a78d6', '#eb6834', '#1f9e6e', '#8a5cc2', '#c8a21c', '#d35d9b', '#4bb3c7', '#7a5c3e']    # sub-arbor colors of Report 10
 RK = 'model: Spearman blocked vs intact (mean over MBs) by version'
@@ -38,7 +47,7 @@ def load(ver):
 
 
 V = {v: load(v) for v in OWS}
-d0, d1 = V['official'], V['outside']
+d0, d1 = V['main'], V['earlier']
 
 
 def lam_lab(key):
@@ -72,23 +81,24 @@ DATA_DS = {rn: d0['SC'][rn][DS][0] for rn in RNS}
 R = L.Report('12', 'If signals inside APL cannot cross between its calyx sub-arbors (the compartments of Report 10), does the model '
              'reshape the KC representation, especially the rank order of odor-pair similarity with inhibition on versus off, more like '
              'TNT vs TNT3c than a uniform APL, an APL weighted by per-KC synapse counts, or the local APL without walls of Report 11?',
-             inputs=['The pinned KC model of Report 07', 'APL skeletons and calyx sub-arbors (Report 10)',
+             inputs=['The pinned KC model of Report 07 (corrected calyx, new claws, new ORN table)', 'APL skeletons and calyx sub-arbors (Report 10)',
                      'Calyx KC ↔ APL and APL → PN synapses with their positions (Reports 01, 02)', 'The local model of Report 11, as reference'],
-             outputs=['`odor_weighted/APL_compartment_model_summary.json`, `_fits.csv`, `_per_MB_{ORN,GH146}.csv`, `_odor_pairs.csv`, `_nulls.csv`, '
-                      '`_compartments.csv`', '`odor_weighted/APL_compartment_model.png`, `APL_compartment_model_notes.md`',
-                      'the same in `with_outside_ROI_synapses/odor_weighted/`'],
+             outputs=['`with_outside_ROI_synapses/claws_v2m2/odor_weighted/`: `APL_compartment_model_summary.json`, `_fits.csv`, '
+                      '`_per_MB_{ORN,GH146}.csv`, `_odor_pairs.csv`, `_nulls.csv`, `_compartments.csv`',
+                      'The earlier version (official ROIs, old claws) in `odor_weighted/`'],
              scripts=['`scripts/apl_compartment_model.py` (the model)', '`scripts/apl_compartment_model_figure.py`',
                       '`scripts/apl_compartment_model_notes.py`', '`scripts/reports/r12_prep.py` (compartment spread, matrix properties, positions)',
                       '`scripts/reports/r12_compartments.py` (this report)'])
 
 R.p('Report 10 found that APL\'s calyx arbor is not one continuous tree in the calyx: it comes in several sub-arbors that join only farther '
-    'down, through the peduncle or the lobes, so two synapses in different sub-arbors are 200–360 µm apart along APL even when they are close '
+    f'down, through the peduncle or the lobes, so two synapses in different sub-arbors are {min(DIFF_SUB):.0f}–{max(DIFF_SUB):.0f} µm apart along APL on average even when they are close '
     'in space. Report 11 let APL\'s signal fade smoothly with distance along the skeleton. This report tries the other extreme suggested by '
     'that anatomy: each sub-arbor is a closed compartment, and a KC\'s activity can only inhibit KCs whose APL synapses sit in the same '
-    'sub-arbor. Hemibrain R, male CNS L and R (Yang, 2026-10-21), both versions of the tables.')
+    'sub-arbor. Hemibrain R, male CNS L and R (Yang, 2026-10-21), with the corrected calyx and the new claws.')
 
+R.box('What changed in this revision (2026-11-04)', ["The main results use the corrected calyx, the new claws and the new ORN table; the earlier version is compared at the end."], 'plain')
 R.symbols([
-    ('k,\\ j', 'Kenyon cells (KCs); $k$ receives inhibition, $j$ excites APL', '$N$ = 1,793 (hemibrain R), 1,876 (male CNS L), 1,900 (male CNS R)'),
+    ('k,\\ j', 'Kenyon cells (KCs); $k$ receives inhibition, $j$ excites APL', '$N$ = ' + ', '.join(f'{NKC[k]:,} ({MBN[k]})' for k in MBS)),
     ('o', 'An odor', '16 (ORN input) or 13 (GH146 input)'),
     ('x_{ko},\\ y_{ko}', 'Excitatory input and response of KC $k$ to odor $o$ (Report 07, pinned)', 'threshold units; ≥ 0'),
     ('\\theta', 'KC threshold', '1'),
@@ -103,7 +113,7 @@ R.symbols([
     ('\\kappa_v', 'Decay factor of the tree edge from node $v$ to its parent: $e^{-\\ell_v/\\lambda}$ inside a compartment, 0 on an edge that leaves one', '0 to 1'),
     ('\\Phi_{vj}', 'Signal from KC $j$ at skeleton node $v$', '≥ 0'),
     ('B_{kb},\\ Q_{bo},\\ \\beta', 'Bouton route of Report 11: share of KC $k$\'s claw input from bouton $b$; APL signal at bouton $b$; its divisive gain', ''),
-    ('f', 'Boutons\' share of APL\'s calyx output synapses', '0.097 hemibrain, 0.112 male CNS'),
+    ('f', 'Boutons\' share of APL\'s calyx output synapses', f'{FSH["hemibrain"]:.3f} hemibrain, {FSH["malecns"]:.3f} male CNS'),
     ('S_{ab}', 'Cosine similarity of the KC population responses to odors $a$ and $b$', '0 to 1'),
     ('\\rho_{\\mathrm{rank}}', 'Spearman correlation over odor pairs between blocked and intact $S_{ab}$, mean over the three mushroom bodies', '−1 to 1; lower = more reordering'),
     ('r', 'Pearson correlation over odor pairs between the model\'s $\\Delta S_{ab}$ (blocked − intact, averaged over mushroom bodies) and the data\'s (TNT − TNT3c)', '−1 to 1'),
@@ -138,7 +148,7 @@ def fig_map(d):
     fig.tight_layout(); return fig
 
 
-R.fig(fig_map(d0), 'Calyx KC ↔ APL synapses (a random 8,000 per mushroom body, official ROIs), each drawn at the APL skeleton node it was '
+R.fig(fig_map(d0), 'Calyx KC ↔ APL synapses (a random 8,000 per mushroom body, corrected calyx), each drawn at the APL skeleton node it was '
       'placed on, viewed from posterior (x: µm toward the fly\'s right; y: µm toward dorsal; hemibrain and male CNS have different origins, '
       'so only distances within a panel compare). Color: the compartment (sub-arbor) of that node, named and colored as in Report 10; '
       'light gray: small pieces. Neighboring colors overlap in this 2-D view because the sub-arbors interleave in depth.',
@@ -174,7 +184,7 @@ def fig_spread(d):
 
 
 R.fig(fig_spread(d0), '**a**, how APL\'s calyx output onto KCs (APL → KC synapses) divides among the compartments of each mushroom body '
-      '(official ROIs); colors and names as in Figure 1, light gray = all small pieces together. **b**, for each KC, the share of its calyx '
+      '(corrected calyx); colors and names as in Figure 1, light gray = all small pieces together. **b**, for each KC, the share of its calyx '
       'synapses with APL (KC → APL and APL → KC together) that lie in the one compartment holding most of them; histogram over KCs with at '
       'least one such synapse, lines = mushroom bodies, y in % of those KCs per 0.05 bin. A value of 1 means all of a KC\'s APL synapses are '
       'in one compartment.', 'How APL\'s output and each KC\'s synapses divide among compartments.')
@@ -184,7 +194,7 @@ for k in MBS:
     rows.append([MBN[k], len(c), sum(1 for x in d0['NM'][k].values()), F(1 / np.sum(c.share_APL_to_KC ** 2), 1),
                  L.pct(c.share_APL_to_KC.max()), F(np.median(s.main_share), 2), L.pct((s.main_share == 1).mean())])
 R.table(['Mushroom body', 'compartments with KC synapses', 'named (≥ 2%)', 'effective number', 'largest share of APL → KC',
-         'KC main-compartment share, median', 'KCs entirely in one compartment'], rows, title='Compartments, official ROIs.',
+         'KC main-compartment share, median', 'KCs entirely in one compartment'], rows, title='Compartments.',
         caption='Effective number = $1/\\sum_c s_c^2$ with $s_c$ the compartment\'s share of APL → KC synapses (equal to the count if all were '
         'equal). The last two columns use each KC\'s synapses with APL in both directions.', num_cols=[1, 2, 3, 4, 5, 6])
 hb_eff = 1 / np.sum(ct[ct.mushroom_body == 'hemibrain R'].share_APL_to_KC ** 2)
@@ -264,18 +274,18 @@ def fig_M(mp):
     fig.tight_layout(); return fig
 
 
-R.fig(fig_M(mp), 'Properties of the coupling matrix $M$ (official ROIs), one marker per mushroom body. x-axis: versions; gray = C (one '
+R.fig(fig_M(mp), 'Properties of the coupling matrix $M$, one marker per mushroom body. x-axis: versions; gray = C (one '
       'APL), purple = local without walls (Report 11), gold = confined to sub-arbors, at the same λ side by side. **a**, for each KC $k$ the '
       'participation ratio $(\\sum_j M_{kj})^2 / \\sum_j M_{kj}^2$, the number of KCs that would contribute equally to its inhibition, as a % '
       'of all KCs; median over KCs. **b**, % of all KC pairs $(k, j)$ whose coupling is exactly zero: with walls, two KCs with no '
       'compartment in common cannot inhibit each other. **c**, Pearson correlation of $M$ with C over KC pairs. From '
-      '`reports/data/r12_M_properties.csv`.', 'Walls cut couplings between compartments; at short λ they change nothing.')
+      f'`reports/data/r12_M_properties{TAGS["main"]}.csv`.', 'Walls cut couplings between compartments; at short λ they change nothing.')
 g = lambda k, v, c: mp[(mp.mushroom_body == k) & (mp.version == v)][c].iloc[0]
 R.p('With isopotential compartments ' + ', '.join(f'{L.pct(g(k, "compartments inf", "zero_coupling_pairs"))} of KC pairs in {MBN[k]}' for k in MBS)
     + ' cannot interact at all, yet a typical KC is still inhibited by '
     + ', '.join(L.pct(g(k, 'compartments inf', 'effective_inhibitors_frac_median')) for k in MBS)
     + ' of all KCs (same order), because its synapses lie in the big compartments. At λ = 10 µm the walled and unwalled matrices are '
-    'practically the same (the signal has faded long before it would reach another compartment, 200–360 µm away), so from about 25 µm down '
+    f'practically the same (the signal has faded long before it would reach another compartment, {min(DIFF_SUB):.0f}–{max(DIFF_SUB):.0f} µm away on average), so from about 25 µm down '
     'this model and Report 11\'s coincide.')
 
 # ---------------------------------------------------------------- 4 results
@@ -306,7 +316,7 @@ def draw(ax, d, rn, kind):
         ax.set_ylabel('$\\rho_{\\mathrm{rank}}$: Spearman, blocked vs\nintact similarity over odor pairs'); ax.set_ylim(min(0.85, min(vals) - 0.01), 1.0)
     else:
         ax.axhline(CEIL, color=L.BLOCKED, lw=1.2, ls='--'); ax.axhline(0, color=L.GRID, lw=0.8)
-        ax.text(x[-1] + 0.5, CEIL, 'data ceiling ≈ 0.84', fontsize=6.8, color=L.BLOCKED, va='bottom', ha='right')
+        ax.text(x[-1] + 0.5, CEIL, f'data ceiling ≈ {CEIL}', fontsize=6.8, color=L.BLOCKED, va='bottom', ha='right')
         ax.set_ylabel('$r$: model ΔS vs data ΔS\nover odor pairs'); ax.set_ylim(min(0, min(vals) - 0.04), 0.9)
     ax.set_xlim(-0.8, x[-1] + 0.8)
     ax.yaxis.grid(True, color=L.GRID, lw=0.6); ax.set_axisbelow(True)
@@ -324,14 +334,15 @@ def fig_results(d):
     fig.tight_layout(h_pad=3.0); return fig
 
 
-R.fig(fig_results(d0), 'Official ROIs. x-axis: model versions in five groups (colors, named in the legend and under the axis): one global APL '
+R.fig(fig_results(d0), 'x-axis: model versions in five groups (colors, named in the legend and under the axis): one global APL '
       '(U, C); the local APL without walls of Report 11 (λ from 200 to 2 µm); APL confined to sub-arbors with inhibition on KCs (λ = ∞, '
       'λ = ∞ with each compartment\'s potential divided by its cable length, then λ = 200 to 10 µm inside compartments); confined to '
       'sub-arbors with inhibition on PN boutons only; confined, with KCs and boutons at the real bouton share. Open markers: the three '
       'mushroom bodies; bar: their mean (in **c**–**d** the bar is $r$ of the similarity change averaged over mushroom bodies, so it can lie '
       'above all three markers). **a**–**b**, rank order $\\rho_{\\mathrm{rank}}$, lower = more reordering; orange lines: data, raw (solid) '
       'and noise-corrected (dashed). **c**–**d**, pattern $r$; orange dashed: the data\'s ceiling. Left: ORN input (16 odors, 120 pairs); '
-      'right: GH146 input (13 odors, 78 pairs).', 'Confining APL to its sub-arbors does not reorder the pairs more.')
+      'right: GH146 input (13 odors, 78 pairs).', 'Confining APL to its sub-arbors: rank order and pattern.')
+FIG_RES = R.n_fig
 
 rows = []
 SEL = [('U', 'c'), ('C', 'c'), ('compartments inf', 'c'), ('compartments inf, per length', 'c'), ('compartments 50 µm', 'c'),
@@ -346,12 +357,15 @@ for rn in RNS:
     for key, src in SEL:
         rows.append([rn, NICE[key], F(rk(d0, rn, src, key), 3), F(rr(d0, rn, src, key), 3), F(ds(d0, rn, src, key), 3)])
     rows.append([rn, '**data** (TNT vs TNT3c)', f'**{F(DATA_RANK[rn], 3)}** (≈ {CORR} noise-corrected)', f'ceiling ≈ {CEIL}', f'**{F(DATA_DS[rn], 3)}**'])
-R.table(['Input', 'Version', '$\\rho_{\\mathrm{rank}}$ (mean of MBs)', 'pattern $r$', 'mean ΔS'], rows, title='Main numbers, official ROIs.',
+TAB_MAIN = R.table(['Input', 'Version', '$\\rho_{\\mathrm{rank}}$ (mean of MBs)', 'pattern $r$', 'mean ΔS'], rows, title='Main numbers.',
         caption='Selected versions; all are in `APL_compartment_model_summary.json` and, for the versions without walls, '
         '`APL_local_model_summary.json`.', num_cols=[2, 3, 4])
 
 
 def iso_best(d, rn): return max(['compartments inf', 'compartments inf, per length'], key=lambda v: rr(d, rn, 'c', v))
+
+
+RNK = 'rank Spearman real, null mean, null 5-95%, p (lower = more reordering)'
 
 
 def answer(d, vname):
@@ -377,14 +391,15 @@ def answer(d, vname):
         + '. With decay inside compartments $r$ rises as λ shrinks, but only to the values the same λ gives without walls.',
         '**Placement within compartments:** shuffling KCs within class for ' + ', '.join(f'{rn} ({lam_lab(nkey(d, rn).split("version ")[-1])})' for rn in RNS)
         + ' gives ' + '; '.join(f'{rn}: $r$ {F(nb[rn]["r real, null mean, null 5-95%, p"][0], 3)} vs shuffles {F(nb[rn]["r real, null mean, null 5-95%, p"][1], 3)}, '
-                                f'$p$ = {F(pv[rn], 2)}' for rn in RNS) + '.',
+                                f'$p$ = {F(pv[rn], 2)}' for rn in RNS) + '. Rank order, real vs shuffles (lower = more reordering): '
+        + '; '.join(f'{rn} {F(nb[rn][RNK][0], 3)} vs {F(nb[rn][RNK][1], 3)}, $p$ = {F(nb[rn][RNK][3], 2)}' for rn in RNS) + '.',
         '**Size: no.** Mean ΔS of the KC-route compartment versions is '
         + ', '.join(f'{L.pct(min(ds(d, rn, "c", v) for v in ["compartments inf", "compartments inf, per length"] + [f"compartments {l} µm" for l in CL]) / DATA_DS[rn])}–'
                     f'{L.pct(max(ds(d, rn, "c", v) for v in ["compartments inf", "compartments inf, per length"] + [f"compartments {l} µm" for l in CL]) / DATA_DS[rn])} of the data\'s ({rn})' for rn in RNS)
         + ', smaller than U\'s.']
 
 
-R.box('Answer, official ROIs', answer(d0, 'official'), 'result')
+R.box('Answer', answer(d0, 'main'), 'result')
 
 
 def fig_walls(d):
@@ -406,7 +421,7 @@ def fig_walls(d):
     fig.tight_layout(); return fig
 
 
-R.fig(fig_walls(d0), 'The same length constant with and without walls (official ROIs). x-axis: λ, from ∞ (left; without walls this is C, with '
+R.fig(fig_walls(d0), 'x-axis: λ, from ∞ (left; without walls this is C, with '
       'walls the isopotential compartments) to 10 µm. Purple circles: Report 11\'s local model; gold squares: the same with no signal crossing '
       'between sub-arbors; gray dashed: uniform APL. **a**–**b**, rank order $\\rho_{\\mathrm{rank}}$ (mean of the three mushroom bodies); '
       '**c**–**d**, pattern $r$ (MB-averaged change). Left: ORN input; right: GH146 input.',
@@ -420,7 +435,7 @@ _lr, _lk = _wdiff(d0, rr, ['200', '100', '50', 'inf']), _wdiff(d0, rk, ['200', '
 _sr = _wdiff(d0, rr, ['10'])
 R.p('The walls matter only where the signal would otherwise reach another sub-arbor, at long λ (∞ to 50 µm). There they change '
     f'$\\rho_{{\\mathrm{{rank}}}}$ by {F(min(_lk), 3, True)} to {F(max(_lk), 3, True)} and $r$ by {F(min(_lr), 3, True)} to {F(max(_lr), 3, True)} '
-    f'(mostly lowering it, most for GH146). At λ = 10 µm walled and unwalled $r$ '
+    + ('(mostly lowering it). ' if np.mean(_lr) < 0 else '(mostly raising it). ') + 'At λ = 10 µm walled and unwalled $r$ '
     + ('agree to three decimals.' if max(abs(x) for x in _sr) < 0.0005 else f'differ by at most {F(max(abs(x) for x in _sr), 3)}.'))
 
 
@@ -446,34 +461,48 @@ R.fig(fig_null(d0), 'Gray: 100 shuffles in which KCs swap their APL synapse site
       'order (lower = more reordering).', 'Does it matter which KC sits in which compartment?')
 
 # ---------------------------------------------------------------- 5 second version
-R.section('Second version: synapses outside the official ROIs added')
-R.p('The same model on the tables of `with_outside_ROI_synapses/`, which mostly adds the back of the male CNS calyx (Report 02). The '
-    'compartments are the same skeleton pieces; more synapses fall into them.')
-R.fig(fig_results(d1), 'As Figure 4, with the tables of `with_outside_ROI_synapses/`.', 'Rank order and pattern, second version.')
+R.section('Earlier version: official ROIs and the old claws')
+R.p('The earlier version of this report used the official ROIs (without the back of the male CNS calyx), the old 2 µm claws and the old '
+    'ORN table. The compartments are the same skeleton pieces; fewer synapses fall into them.')
+R.fig(fig_results(d1), f'As Figure {FIG_RES}, with the earlier tables (`odor_weighted/`).', 'Rank order and pattern, earlier version.')
 rows = []
 for rn in RNS:
     for key, src in SEL:
         rows.append([rn, NICE[key], F(rk(d0, rn, src, key), 3), F(rk(d1, rn, src, key), 3), F(rr(d0, rn, src, key), 3), F(rr(d1, rn, src, key), 3)])
-R.table(['Input', 'Version', '$\\rho_{\\mathrm{rank}}$ official', '$\\rho_{\\mathrm{rank}}$ second version', '$r$ official', '$r$ second version'], rows,
-        title='Official ROIs vs the second version.', caption='As Table 3.', num_cols=[2, 3, 4, 5])
-R.box('Answer, second version', answer(d1, 'outside'), 'result')
+R.table(['Input', 'Version', '$\\rho_{\\mathrm{rank}}$ now', '$\\rho_{\\mathrm{rank}}$ earlier', '$r$ now', '$r$ earlier'], rows,
+        title='Now vs the earlier version.', caption=f'As Table {TAB_MAIN}. "Now": corrected calyx, new claws, new ORN table.', num_cols=[2, 3, 4, 5])
+R.box('Answer, earlier version', answer(d1, 'earlier'), 'result')
 
 # ---------------------------------------------------------------- 6
 R.section('What this means, and caveats')
-R.ul(['Confining APL\'s signal to its calyx sub-arbors does **not** make inhibition reorder odor pairs more. The rank order stays at '
-      'about 0.98, like a uniform APL. In this model, inhibition that acts on the KCs, whether global, local or split into compartments, '
-      'mostly rescales KC responses and keeps the order of similarities (Report 09 explains when that happens).',
-      'For **which** pairs change most, walls alone do not help: isopotential compartments match the data no better than one APL. Only '
-      'when each compartment\'s potential is divided by its cable length, so that small compartments respond more strongly, does $r$ rise '
-      'above U and C, and for GH146 input that version beats within-class shuffles in both versions of the tables (for ORN it does not). '
-      'It still stays below Report 11\'s local model without walls at short λ, and at short λ the walls are irrelevant because the signal '
-      'fades before reaching another sub-arbor.',
-      'The sub-arbors are uneven: hemibrain R is nearly one compartment, so most of any effect would come from male CNS. Most KCs have synapses '
-      'in more than one compartment, which spreads each KC\'s inhibition over several compartments and blurs the walls.'])
+KCV = ['compartments inf', 'compartments inf, per length'] + [f'compartments {l} µm' for l in CL]
+RKA = [rk(d0, rn, 'c', v) for rn in RNS for v in KCV]
+PL_ = 'compartments inf, per length'
+up_ = {rn: rr(d0, rn, 'c', PL_) > max(rr(d0, rn, 'c', 'U'), rr(d0, rn, 'c', 'C')) for rn in RNS}
+nb_ = {(vn, rn): d[ 'SC'][rn][nkey(d, rn)] for vn, d in [('now', d0), ('earlier version', d1)] for rn in RNS}
+beat_ = [f'{rn} ({vn}, $p$ = {F(v["r real, null mean, null 5-95%, p"][3], 2)})' for (vn, rn), v in nb_.items()
+         if nkey(d0 if vn == 'now' else d1, rn).endswith(PL_) and v['r real, null mean, null 5-95%, p'][3] <= 0.05]
+bestl = {rn: max(rr(d0, rn, 'l', f'local {l} µm') for l in LOC) for rn in RNS}
+EFF = {k: d0['SC']['checks'][k]['effective number of compartments (1 / sum of squared APL->KC shares)'] for k in MBS}
+R.ul([f'Confining APL\'s signal to its calyx sub-arbors does **not** make inhibition reorder odor pairs much more. With inhibition on the '
+      f'KCs the rank order stays at {F(min(RKA), 3)}–{F(max(RKA), 3)}, next to a uniform APL ({F(rk(d0, "ORN", "c", "U"), 3)} ORN, '
+      f'{F(rk(d0, "GH146", "c", "U"), 3)} GH146) and far from the data\'s ≈ {CORR}. In this model, inhibition that acts on the KCs, whether '
+      'global, local or split into compartments, mostly rescales KC responses and keeps the order of similarities (Report 09 explains when that happens).',
+      'For **which** pairs change most, walls alone do not help: isopotential compartments give $r$ = '
+      + ', '.join(f'{F(rr(d0, rn, "c", "compartments inf"), 3)} ({rn})' for rn in RNS) + ', against C\'s '
+      + ', '.join(F(rr(d0, rn, 'c', 'C'), 3) for rn in RNS) + '. Dividing each compartment\'s potential by its cable length, so that small '
+      'compartments respond more strongly, gives ' + ', '.join(f'{F(rr(d0, rn, "c", PL_), 3)} ({rn})' for rn in RNS)
+      + (', above U and C for both inputs' if all(up_.values()) else ', above U and C for ' + (' and '.join(rn for rn in RNS if up_[rn]) or 'neither input'))
+      + '. That version beats within-class shuffles for ' + ('; '.join(beat_) if beat_ else 'neither input in either version') + '. '
+      'The best local model without walls (Report 11) reaches ' + ', '.join(f'{F(bestl[rn], 3)} ({rn})' for rn in RNS)
+      + ', and at short λ the walls are irrelevant because the signal fades before reaching another sub-arbor.',
+      'The sub-arbors are uneven: the effective number of compartments is ' + ', '.join(f'{F(EFF[k], 1)} in {MBN[k]}' for k in MBS)
+      + ', so most of any effect would come from male CNS. Most KCs have synapses in more than one compartment, which spreads each KC\'s '
+      'inhibition over several compartments and blurs the walls.'])
 R.box('Caveats', ['The sub-arbors come from the skeletons\' connectivity. A connection missed by the segmentation, or a false merge, would '
                   'change them (Report 10); worth checking in neuroglancer before relying on them.',
-                  'Every small piece is treated as its own compartment. They hold 1–4% of APL\'s synapses, so pooling them differently would '
-                  'change little.',
+                  f'Every small piece is treated as its own compartment. Together they hold {min(SMALL) * 100:.0f}–{max(SMALL) * 100:.0f}% of APL\'s '
+                  'synapses on microglomeruli, so pooling them differently would change little.',
                   '"÷ length" assumes the same branch thickness everywhere; real input resistance also depends on thickness and on the '
                   'connections through the peduncle, which the walls ignore.',
                   'Synapse counts stand in for strength; a steady state is assumed; the shuffle $p$ values do not correct for choosing '

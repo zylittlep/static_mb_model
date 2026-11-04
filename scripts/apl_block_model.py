@@ -31,9 +31,14 @@ from scipy.stats import spearmanr
 
 # APL_VARIANT=outside_roi reads the tables with synapses outside the official ROIs added (with_outside_ROI_synapses/);
 # the default (official ROIs only) is unchanged.
-B = '/mnt/project-files/apl_synapses/' + ('with_outside_ROI_synapses/' if os.environ.get('APL_VARIANT', '') == 'outside_roi' else '')
+# APL_VARIANT=claws_v2m2 (2026-11-04, Yang's revision): corrected calyx + the new claws (8 µm along the KC skeleton, split
+# by PN, >= 2 PSDs; with_outside_ROI_synapses/claws_v2m2/) + the new ORN table (orn_inputs_2026-11-03/ORN_TNT16_flymean.csv).
+VARIANT = os.environ.get('APL_VARIANT', '')
+B = '/mnt/project-files/apl_synapses/' + {'outside_roi': 'with_outside_ROI_synapses/',
+                                          'claws_v2m2': 'with_outside_ROI_synapses/claws_v2m2/'}.get(VARIANT, '')
 OUT = os.environ.get('APL_BLOCK_OUT', B + 'odor_weighted/')
-ORN_TABLE = '/mnt/project-files/uploads/hearth/5d477ed3-345f-4332-8b48-1ad3e2e0a0c1'   # ORN_ovlp16_resp_flyave_merge_dropna.csv
+ORN_TABLE = ('/mnt/project-files/apl_synapses/orn_inputs_2026-11-03/ORN_TNT16_flymean.csv' if VARIANT == 'claws_v2m2' else
+             '/mnt/project-files/uploads/hearth/5d477ed3-345f-4332-8b48-1ad3e2e0a0c1')   # old: ORN_ovlp16_resp_flyave_merge_dropna.csv
 HB_RENAME = {'VC3l': 'VC3', 'VC3m': 'VC5', 'VC5': 'VM6'}
 GPAT = r'(?:D|DA\d[lm]?|DC\d|DL\d[dv]?|DM\d|DP1[lm]|V|VA\d[dlmv]?|VC\d[lm]?|VL\d[ap]?|VM\d[dv]?|VP\d[dlm]?)'
 # Yang, 2026-10-21: hemibrain and male CNS only; FlyWire and BANC are discarded. The four-connectome outputs are in
@@ -47,6 +52,12 @@ MAIN = '20% -> 10%'
 VARS = ['U', 'C', 'Cs', 'Cc', 'P0', 'P', 'L', 'M0', 'M']
 MIN_CL = 0.005
 SIM = 'cos'          # similarity used for the summary and figure: 'cos' (cosine) or 'r' (Pearson)
+# Revision runs (APL_VARIANT=claws_v2m2, Yang 2026-11-03): every odor kept (ms included; a similarity with no KC responding stays
+# undefined), version MC, extra response sets (ORN -> PN normalization, negative responses kept) and two other input weightings.
+REVISION = VARIANT == 'claws_v2m2'
+if REVISION:
+    MIN_CL = 0.0
+    VARS = VARS + ['MC']
 rng = np.random.default_rng(0)
 
 
@@ -107,10 +118,51 @@ F_SHARE = (PNW.groupby('dataset').APL_to_PN.sum() / (PNW.groupby('dataset').APL_
 # ---------------- 2. model ----------------
 def responses():
     orn = pd.read_csv(ORN_TABLE, index_col=0)
+    orn = orn.dropna()    # new table: DL4 and VM4 were recorded only with the validation2 odors (4 of 16); their claws count as input 0
     gh = pd.read_csv(B + 'odor_weighted/GH146_mean_by_glomerulus.csv', index_col=0).drop(columns='n_flies')
     col = {o: f'megamat: {o} @ -3' for o in orn.columns} | {'paa': 'glomeruli_diagnostics: paa @ -5'}
     gh13 = pd.DataFrame({o: gh[c] for o, c in col.items() if c in gh.columns})[[o for o in orn.columns if col[o] in gh.columns]]
     return {'ORN': orn, 'GH146': gh13}
+
+
+def olsen(R, sigma, m):
+    """ORN -> PN, divisive normalization of Olsen et al. (2010) as used by Kennedy (2019):
+    PN_go = r^1.5 / (r^1.5 + sigma^1.5 + (m s_o)^1.5), r = ORN response of glomerulus g (negative set to 0), s_o = mean over the
+    measured glomeruli of r for odor o (lateral input). R_max is left out (the model's threshold is set by the coding level)."""
+    r = np.clip(R, 0, None)
+    s = r.mean(0)
+    return r ** 1.5 / (r ** 1.5 + sigma ** 1.5 + (m * s) ** 1.5)
+
+
+OLSEN_FIT = {}
+
+
+def responses_revision():
+    """ORN, GH146 (negative values set to 0 in run_mb), ORN -> PN (Olsen normalization; sigma and m fitted so that the PN
+    responses best match GH146 on the shared glomeruli and odors, Pearson r), and ORN / GH146 with negative values kept."""
+    base = responses()
+    orn, gh = base['ORN'], base['GH146']
+    gl = [g for g in orn.index if g in gh.index]; od = list(gh.columns)
+    G = np.clip(gh.loc[gl, od].values, 0, None).ravel()
+    pos = np.clip(orn.values, 0, None); pos = pos[pos > 0]
+    best = (-2, None, None)
+    # sigma: percentiles of the positive ORN responses, then multiples of the largest one (the best fit can lie above the
+    # 90th percentile: 2026-11-04 check found r 0.826 at sigma 2, m 0, against 0.806 at the old grid's edge)
+    SG = list(np.quantile(pos, [0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])) + list(pos.max() * np.array([1, 1.5, 2, 3, 5, 10]))
+    for sg in SG:
+        for m in [0, 0.25, 0.5, 1, 1.5, 2, 3, 4, 6, 8, 12, 16]:
+            P = olsen(orn, sg, m).loc[gl, od].values.ravel()
+            r = np.corrcoef(P, G)[0, 1]
+            if r > best[0]: best = (r, sg, m)
+    r_lin = np.corrcoef(np.clip(orn.loc[gl, od].values, 0, None).ravel(), G)[0, 1]
+    OLSEN_FIT.update({'sigma': round(float(best[1]), 4), 'm': best[2], 'r with GH146 (PN)': round(float(best[0]), 3),
+                      'r with GH146 (ORN, no transform)': round(float(r_lin), 3), 'glomeruli': len(gl), 'odors': len(od),
+                      'sigma grid': [round(float(x), 4) for x in SG], 'm grid': [0, 0.25, 0.5, 1, 1.5, 2, 3, 4, 6, 8, 12, 16]})
+    pn = olsen(orn, best[1], best[2])
+    return {'ORN': orn, 'GH146': gh, 'ORN-PN': pn, 'ORN neg': orn, 'GH146 neg': gh}
+
+
+CLIP = lambda rn: not rn.endswith(' neg')
 
 
 def mushroom_bodies():
@@ -133,9 +185,13 @@ def mushroom_bodies():
         for sd in sorted(side.unique()):
             ids = side.index[side == sd]
             c = cl[cl.kc_id.isin(ids) & (cl.glom != '')]
-            W = c.pivot_table(index='kc_id', columns='glom', values='n_PN_synapses', aggfunc='sum', fill_value=0)
-            W = W.reindex(ids, fill_value=0).div(S[ids], axis=0)
-            out[f'{ds} {sd}'] = dict(ds=ds, W=W, u=w.APL_to_KC_calyx.reindex(ids).fillna(0).values.astype(float),
+            Wn = c.pivot_table(index='kc_id', columns='glom', values='n_PN_synapses', aggfunc='sum', fill_value=0).reindex(ids, fill_value=0)
+            W = Wn.div(S[ids], axis=0)
+            # other input weightings (revision): raw synapse counts; equal weight per claw (share of the KC's claws from g)
+            nc = cl[cl.kc_id.isin(ids)].groupby('kc_id').size()
+            Wc = c.pivot_table(index='kc_id', columns='glom', values='claw_id', aggfunc='size', fill_value=0).reindex(ids, fill_value=0)
+            Wc = Wc.reindex(columns=Wn.columns, fill_value=0).div(nc.reindex(ids), axis=0).fillna(0)
+            out[f'{ds} {sd}'] = dict(ds=ds, W=W, W_raw=Wn.astype(float), W_claw=Wc, u=w.APL_to_KC_calyx.reindex(ids).fillna(0).values.astype(float),
                                      v=w.KC_to_APL_calyx.reindex(ids).fillna(0).values.astype(float),
                                      cls=w.kc_class.reindex(ids).fillna('?').values,
                                      p=gw.APL_to_PN_per_PN_to_KC, q=gw.APL_to_KC_per_claw_PN_synapse)
@@ -186,9 +242,9 @@ def cosm(Y):
         return (Y.T @ Y) / np.outer(n, n)
 
 
-def run_mb(mb, R, cl_blocked, cl_intact):
+def run_mb(mb, R, cl_blocked, cl_intact, clip=True):
     W = mb['W']; gl = [g for g in W.columns if g in R.index]
-    Wm, Rp = W[gl].values, np.clip(R.loc[gl].values, 0, None)
+    Wm, Rp = W[gl].values, (np.clip(R.loc[gl].values, 0, None) if clip else R.loc[gl].values.astype(float))
     H = Wm @ Rp
     lo, hi = 0.0, H.max()
     for _ in range(60):
@@ -219,12 +275,16 @@ def run_mb(mb, R, cl_blocked, cl_intact):
     for name, pp in {'M0': oneg, 'M': p}.items():
         s = calib(lambda s: cl_of(model_y(Wm, Rp, th, s * (1 - f) * gain['U'], s * f * gain['P0'], one, one, pp)).mean(), cl_intact)
         Y[name] = model_y(Wm, Rp, th, s * (1 - f) * gain['U'], s * f * gain['P0'], one, one, pp)
-    return {'H': H, 'Y': Y, 'n_kc': n}
+    if 'MC' in VARS:     # inhibition on both: KCs per KC from the connectome (C) and boutons per glomerulus (P), at synapse share
+        mk = lambda s: model_y(Wm, Rp, th, s * (1 - f) * gain['C'], s * f * gain['P'], u, v, p)
+        s = calib(lambda s: cl_of(mk(s)).mean(), cl_intact)
+        Y['MC'] = mk(s)
+    return {'H': H, 'Y': Y, 'n_kc': n, 'th': th, 'gain': gain}
 
 
 if __name__ == '__main__':
     GW.round(5).to_csv(OUT + 'APL_wiring_by_glomerulus.csv', index=False)
-    RESP = responses()
+    RESP = responses_revision() if REVISION else responses()
     MB, SIDES = mushroom_bodies()
     MBS = list(MB)
     if os.environ.get('APL_BLOCK_REUSE') and os.path.exists(OUT + 'APL_block_model_odor_pairs.csv'):   # redraw from the saved tables
@@ -234,7 +294,7 @@ if __name__ == '__main__':
         for st, (cb, ci) in SETTINGS.items():
             for rn, R in RESP.items():
                 for k, mb in MB.items():
-                    r = run_mb(mb, R, cb, ci)
+                    r = run_mb(mb, R, cb, ci, clip=CLIP(rn))
                     O = list(R.columns); iu = np.triu_indices(len(O), 1)
                     rc = {c: corr(y) for c, y in r['Y'].items()}
                     cc = {c: cosm(y) for c, y in r['Y'].items()}
@@ -254,6 +314,25 @@ if __name__ == '__main__':
     PR['odor_dropped'] = [(o1 in DROP[(rn, st)]) or (o2 in DROP[(rn, st)]) for rn, st, o1, o2 in zip(PR.responses, PR.coding_levels, PR.odor_a, PR.odor_b)]
     OD.round(5).to_csv(OUT + 'APL_block_model_per_odor.csv', index=False)
     PR.round(5).to_csv(OUT + 'APL_block_model_odor_pairs.csv', index=False)
+    if REVISION:     # other input weightings, main setting, ORN and GH146
+        wo, wp = [], []
+        cb, ci = SETTINGS[MAIN]
+        for wn in ['W_raw', 'W_claw']:
+            for rn in ['ORN', 'GH146']:
+                R = RESP[rn]; O = list(R.columns); iu = np.triu_indices(len(O), 1)
+                for k, mb in MB.items():
+                    r = run_mb(dict(mb, W=mb[wn]), R, cb, ci)
+                    cc = {c: cosm(y) for c, y in r['Y'].items()}
+                    wo.append(pd.DataFrame({'weights': wn, 'responses': rn, 'mushroom_body': k, 'coding_levels': MAIN, 'odor': O,
+                                            'frac_KCs_responding_blocked': cl_of(r['Y']['blocked']),
+                                            **{f'frac_KCs_responding_intact_{c}': cl_of(r['Y'][c]) for c in VARS}}))
+                    wp.append(pd.DataFrame({'weights': wn, 'responses': rn, 'mushroom_body': k, 'coding_levels': MAIN,
+                                            'odor_a': [O[i] for i in iu[0]], 'odor_b': [O[j] for j in iu[1]],
+                                            'cos_KC_input': cosm(r['H'])[iu], 'cos_blocked': cc['blocked'][iu],
+                                            **{f'cos_intact_{c}': cc[c][iu] for c in VARS}}))
+                    print('weights', wn, rn, k, flush=True)
+        pd.concat(wo, ignore_index=True).round(5).to_csv(OUT + 'APL_block_model_other_weights_per_odor.csv', index=False)
+        pd.concat(wp, ignore_index=True).round(5).to_csv(OUT + 'APL_block_model_other_weights_odor_pairs.csv', index=False)
 
 
     # ---------------- summary numbers ----------------
@@ -265,7 +344,7 @@ if __name__ == '__main__':
 
 
     tri = np.triu_indices(len(MBS), 1)
-    summary = {'mushroom_bodies_KCs': SIDES, 'bouton_share_of_APL_calyx_output_synapses': {k: round(v, 3) for k, v in F_SHARE.items() if k in DS},
+    summary = {'olsen_fit': OLSEN_FIT, 'mushroom_bodies_KCs': SIDES, 'bouton_share_of_APL_calyx_output_synapses': {k: round(v, 3) for k, v in F_SHARE.items() if k in DS},
                'wiring_by_glomerulus': wiring, 'odors_left_out_of_pair_results': {f'{rn} {st}': v for (rn, st), v in DROP.items()}, 'model': {}}
     for st in SETTINGS:
         for rn in RESP:

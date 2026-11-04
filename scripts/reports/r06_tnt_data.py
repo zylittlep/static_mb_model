@@ -1,37 +1,45 @@
-"""Report 06: the TNT and TNT3c recordings, what is measured and what is derived from them (tnt_compare.py, data part)."""
-import sys, json
+"""Report 06: the TNT and TNT3c recordings, what is measured and what is derived from them (tnt_compare.py, data part).
+Rebuilt 2026-11-04 for Yang's revision: responses are FC z-scores; what the per-odor effect means mechanistically (chance overlap)
+and its statistics (from the Q&A page of 2026-11-03). The data part does not depend on the connectome; the model numbers quoted
+come from the claws_v2m2 run. The old version is in archive_2026-11-03/."""
+import sys, json, os
+os.environ['APL_VARIANT'] = 'claws_v2m2'
 sys.path.insert(0, '/mnt/project-files/apl_synapses/scripts'); sys.path.insert(0, '/mnt/project-files/apl_synapses/scripts/reports')
 import numpy as np, pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import spearmanr
 import report_lib as L
 import tnt_compare as tc
-L.style()
+L.style(); L.DATE = '2026-11-04'
 F = L.fmt
+rs6 = np.random.default_rng(11)
 O, IU, D, SREC = tc.O, tc.IU, tc.D, tc.SREC
 CC = {'TNT': L.BLOCKED, 'TNT3c': L.INTACT}
 CN = {'TNT': 'TNT (APL blocked)', 'TNT3c': 'TNT3c (control, APL intact)'}
-CHK = json.load(open(L.OW + 'TNT_data_checks.json'))
-RO = pd.read_csv(L.OW + 'TNT_rank_order.csv')
+import apl_block_model as abm
+CHK = json.load(open(L.OW + 'TNT_data_checks.json'))                 # data only: the same for every connectome version
+RO = pd.read_csv(abm.OUT + 'TNT_rank_order.csv')                       # data rows identical to the official run
+TVM = json.load(open(abm.OUT + 'TNT_vs_model_summary.json'))
 ro = lambda resp, comp: float(RO[(RO.source == 'data') & (RO.responses == resp) & (RO.comparison == comp)].spearman.iloc[0])
 
 R = L.Report('06', 'What do the TNT and TNT3c recordings contain, and which numbers are taken from them for the comparison with the model?',
              inputs=['`TNT_ovlp16_resp_perfly.pkl` and `TNT3c_ovlp16_resp_perfly.pkl` (Yang, 2026-10-15): per recording, a table of '
                      'units × 16 odors', '`TNT_ovlp16_cosine_mean_RDM.csv`, `TNT3c_ovlp16_cosine_mean_RDM.csv`: Yang\'s mean RDMs, used as a check'],
-             outputs=['`odor_weighted/TNT_vs_model_per_odor.csv`, `TNT_vs_model_odor_pairs.csv` (data columns)',
-                      '`TNT_data_checks.csv` / `.json`, `TNT_rank_order.csv` (data rows)'],
+             outputs=['`with_outside_ROI_synapses/claws_v2m2/odor_weighted/TNT_vs_model_per_odor.csv`, `TNT_vs_model_odor_pairs.csv` (data columns), '
+                      '`TNT_rank_order.csv` (data rows)', '`odor_weighted/TNT_data_checks.csv` / `.json` (data only)'],
              scripts=['`scripts/tnt_compare.py` (section "data" and the helpers)', '`scripts/tnt_data_checks.py`', '`scripts/tnt_rank_order.py`',
                       '`scripts/reports/r06_tnt_data.py` (this report)'])
 R.p('Yang recorded KC responses to 16 odors in two genotypes. In **TNT**, APL\'s synaptic output is blocked (tetanus toxin light chain '
     'expressed in APL). **TNT3c** is the control, with APL intact (Yang, 2026-10-15). This report describes the files, the quantities taken '
     'from them, and how reliable those quantities are. The pickles are read with a restricted loader (`scripts/orn_load.py`) that only '
     'accepts pandas and numpy classes.')
+R.box('What changed in this revision (2026-11-04)', ["The responses are FC z-scores (Yang, 2026-11-03); \"responding\" means above 1 z-score unit.", "New: what the per-odor effect means mechanistically, tested against chance overlap computed from the data alone.", "New: the statistics behind the per-odor effects (permutation null for the additive fit, bootstrap ranges, split-half reproducibility).", "Numbers that involve the model now come from the run with the corrected calyx and the new claws."], 'plain')
 R.symbols([
     ('c', 'Condition: TNT (APL blocked) or TNT3c (control, APL intact)', ''),
     ('n', 'A recording. Each recording is one hemisphere and is treated as independent (Yang, 2026-10-15)', '8 TNT, 11 TNT3c'),
     ('i', 'A unit (one row of a recording\'s table): a segmented KC response region', '1,638–2,462 per recording'),
     ('o, a, b', 'Odors', '16, the odors of the ORN table'),
-    ('r^{(n)}_{io}', 'Response of unit $i$ in recording $n$ to odor $o$, as provided', 'ΔF/F-like (units not stated); −2.6 to 7.4'),
+    ('r^{(n)}_{io}', 'Response of unit $i$ in recording $n$ to odor $o$, as provided', 'FC z-score (`fc_zscore`); −2.6 to 7.4'),
     ('\\phi^{(n)}_o', 'Fraction of recording $n$\'s units with $r^{(n)}_{io} > 1$ ("responding")', '0 to 1'),
     ('\\phi^c_o', 'Mean of $\\phi^{(n)}_o$ over the recordings of condition $c$', '0 to 1'),
     ('S^{(n)}_{ab}', 'Cosine similarity of odors $a$ and $b$ over the units of recording $n$', '−1 to 1'),
@@ -62,8 +70,9 @@ R.table(['condition', 'recording', 'side', 'units', 'values > 1'],
 
 # ---------------------------------------------------------------- 2 responses
 R.section('Response values and the "responding" criterion')
-R.p('The file does not state the units of $r^{(n)}_{io}$. The values behave like ΔF/F: most lie near 0, and a minority are large. A unit '
-    '**responds** to an odor if its value is above 1. This is the threshold used in all comparisons (0.5 is checked as an alternative):')
+R.p('The responses $r^{(n)}_{io}$ are **FC z-scores** (`fc_zscore`; Yang, 2026-11-03). Most values lie near 0, and a minority are '
+    'large. A unit **responds** to an odor if its value is above 1 z-score unit. This is the threshold used in all comparisons (0.5 is '
+    'checked as an alternative):')
 R.eq(r'\phi^{(n)}_o = \frac{1}{N_n}\,\#\{\, i : r^{(n)}_{io} > 1 \,\}, \qquad \phi^c_o = \frac{1}{|c|}\sum_{n \in c} \phi^{(n)}_o',
      note='$N_n$ = units in recording $n$; $|c|$ = recordings of condition $c$; every recording counts equally')
 
@@ -75,7 +84,7 @@ def fig_hist():
         v = np.concatenate([df.values.ravel() for df in D[c].values()])
         a.hist(v, bins=bins, histtype='step', lw=1.6, color=CC[c], density=True, label=f'{CN[c]}: {len(v):,} values, {L.pct((v > 1).mean())} > 1')
     a.axvline(1, color=L.INK, ls='--', lw=1); a.text(1.05, 1.5, 'threshold 1', fontsize=7.5)
-    a.set_yscale('log'); a.set_xlabel('response $r^{(n)}_{io}$ (ΔF/F-like, units not stated)'); a.set_ylabel('density (log scale)')
+    a.set_yscale('log'); a.set_xlabel('response $r^{(n)}_{io}$ (FC z-score)'); a.set_ylabel('density (log scale)')
     a.legend(fontsize=7.5); a.set_title('a  All responses, pooled over recordings')
     a = axs[1]
     for c in tc.COND:
@@ -181,6 +190,95 @@ R.fig(fg, '**a**, The per-odor effect $e_a$ of the additive fit, sorted. Orange:
       'blocked. Blue: less. **b**, Each point is one odor pair: its similarity in TNT3c (horizontal) against its change (vertical).',
       'Which odors drive the change.')
 
+# ---------------------------------------------------------------- per-odor effect: meaning, mechanism and statistics (Q&A 2026-11-03)
+R.sub('What the per-odor effect means, mechanistically')
+NO = len(O); FRr = tc.FRAC[1.0]
+A6 = np.zeros((len(IU[0]), NO + 1)); A6[:, 0] = 1; A6[np.arange(len(IU[0])), IU[0] + 1] = 1; A6[np.arange(len(IU[0])), IU[1] + 1] = 1
+
+
+def additive6(y):
+    b = np.linalg.lstsq(A6, y, rcond=None)[0]; fit = A6 @ b
+    return b[1:] - b[1:].mean(), 1 - np.var(y - fit) / np.var(y)
+
+
+e6, r26 = additive6(dS)
+assert np.allclose(e6, eff) and abs(r26 - r2) < 1e-9
+null_r2 = np.array([additive6(rs6.permutation(dS))[1] for _ in range(5000)])
+p_r2 = (1 + np.sum(null_r2 >= r26)) / (1 + len(null_r2))
+boot = []
+for _ in range(2000):
+    t, c = rs6.choice(len(SREC['TNT']), len(SREC['TNT'])), rs6.choice(len(SREC['TNT3c']), len(SREC['TNT3c']))
+    boot.append(additive6(SREC['TNT'][t].mean(0) - SREC['TNT3c'][c].mean(0))[0])
+boot = np.array(boot); blo, bhi = np.percentile(boot, [2.5, 97.5], 0); sig = (blo > 0) | (bhi < 0)
+rel = []
+for _ in range(1000):
+    t, c = rs6.permutation(len(SREC['TNT'])), rs6.permutation(len(SREC['TNT3c']))
+    rel.append(np.corrcoef(additive6(SREC['TNT'][t[:4]].mean(0) - SREC['TNT3c'][c[:5]].mean(0))[0],
+                           additive6(SREC['TNT'][t[4:]].mean(0) - SREC['TNT3c'][c[5:]].mean(0))[0])[0, 1])
+rel_h = float(np.mean(rel)); rel_f = 2 * rel_h / (1 + rel_h)
+chance = {c: np.mean([np.sqrt(np.outer(p_, p_))[IU] for p_ in FRr[c]], 0) for c in FRr}
+e_ch, r2_ch = additive6(chance['TNT'] - chance['TNT3c'])
+fT, fC = FRr['TNT'].mean(0), FRr['TNT3c'].mean(0)
+rho_ch = spearmanr(e6, e_ch)[0]; rho_fT = spearmanr(e6, fT)[0]; rho_df = spearmanr(e6, fT - fC)[0]; rho_ratio = spearmanr(e6, fT / fC)[0]
+dpp = pd.Series((fT - fC) * 100, index=O)
+R.p('The fit $\\Delta S_{ab} \\approx \\mu + e_a + e_b$ says: the change of a pair is the average change, plus a bit that belongs to '
+    'each of its two odors. $e_a$ is how much more (or less) the pairs that contain odor $a$ change than the average pair. For example '
+    f'$e_{{\\mathrm{{eb}}}}$ = {F(e6[O.index("eb")], 3, True)}: pairs with eb gain about {F(e6[O.index("eb")], 2)} more cosine similarity '
+    'than average when APL is blocked, whatever the partner. An odor with a large $e_a$ has its whole row of the similarity matrix move up.')
+R.p('**Mechanism: chance overlap.** When an odor drives more units, it shares more responding units with every other odor just by chance: '
+    'two unrelated 0/1 codes in which fractions $p_a$ and $p_b$ of equally excitable units respond have cosine $\\sqrt{p_a p_b}$ (Report 08). '
+    'So an odor that gains many responders when APL is blocked should gain similarity with all partners, which is exactly a large $e_a$. '
+    'This can be tested on the data alone: compute the chance overlap $\\sqrt{p_a p_b}$ from each recording\'s fractions responding, take '
+    'its change TNT − TNT3c, fit the same additive model to it, and compare its per-odor effects with the real $e_a$ (Figure '
+    f'{R.n_fig + 1}b).')
+
+
+def fig_e():
+    fig, axs = plt.subplots(1, 2, figsize=(11.5, 4.6), gridspec_kw={'width_ratios': [1, 1.05]})
+    a = axs[0]; o = np.argsort(e6); y = np.arange(NO)
+    a.hlines(y, blo[o], bhi[o], color=L.GRAY, lw=1.6)
+    a.scatter(e6[o], y, s=36, color=np.where(e6[o] > 0, L.BLOCKED, L.INTACT), zorder=3, edgecolor='white', linewidth=0.6)
+    a.axvline(0, color=L.INK, lw=0.7)
+    a.set_yticks(y); a.set_yticklabels([O[i] + (' *' if sig[i] else '') for i in o], fontsize=8)
+    a.set_xlabel('per-odor effect $e_a$ (cosine, relative to the mean change)')
+    a.set_title(f'a  $e_a$ with 95% bootstrap range ({int(sig.sum())} of {NO} exclude 0, *)', fontsize=9.5)
+    b = axs[1]
+    b.scatter(e_ch, e6, s=36, color=L.INTACT, edgecolor='white', linewidth=0.6, zorder=3)
+    for i, od in enumerate(O): b.annotate(od, (e_ch[i], e6[i]), xytext=(3, 2), textcoords='offset points', fontsize=7, color=L.MUTED)
+    k = np.polyfit(e_ch, e6, 1); xs = np.linspace(e_ch.min(), e_ch.max(), 10); b.plot(xs, np.polyval(k, xs), color=L.BLOCKED, lw=1.2)
+    b.axhline(0, color=L.GRAY, lw=0.6, ls=':'); b.axvline(0, color=L.GRAY, lw=0.6, ls=':')
+    b.set_xlabel('per-odor effect predicted by chance overlap alone'); b.set_ylabel('per-odor effect $e_a$ in the data')
+    b.set_title(f'b  Chance overlap predicts $e_a$: Spearman ρ = {rho_ch:.2f}', fontsize=9.5)
+    fig.tight_layout(); return fig
+
+
+R.fig(fig_e(), f'**a**, The per-odor effects of Figure {R.n_fig}a, with their 95% bootstrap ranges (2,000 draws; recordings resampled with '
+      'replacement within each condition; each draw refits the additive model). **b**, Each point is one odor. Horizontal: the per-odor '
+      'effect of the additive fit to the change in chance overlap $\\sqrt{p_a p_b}$ (fractions responding > 1, per recording, averaged). '
+      'Vertical: the per-odor effect of the real change in similarity. The orange line is the least-squares fit.',
+      'Per-odor effects: how sure, and why.')
+R.p(f'The per-odor effects follow chance overlap (Spearman ρ = {rho_ch:.2f}). They also follow how many units an odor drives in TNT '
+    f'(ρ = {rho_fT:.2f}) and how many it gains (TNT − TNT3c, ρ = {rho_df:.2f}), but not the ratio TNT ÷ TNT3c (ρ = {rho_ratio:.2f}). '
+    'So the per-odor part of the change is mostly the arithmetic of denser codes: odors that drive many units in TNT overlap more with '
+    f'everything. -aPine and euc gain the fewest responding units when APL is blocked ({dpp["-aPine"]:.1f} and {dpp["euc"]:.1f} percentage '
+    f'points, against {dpp.drop(["-aPine", "euc"]).min():.1f}–{dpp.max():.1f} for the other odors) and have the most negative effects. In '
+    'mechanistic terms: if APL\'s feedback grows with the number of active KCs, as in the model of Report 05, it removes the most responders '
+    'from odors that drive many KCs. Blocking it then adds the most responders to exactly those odors, and their codes overlap more with '
+    f'every partner. The data agree with the first step: the units an odor gains (TNT − TNT3c) rise with how many it drives in TNT3c '
+    f'(Spearman ρ = {spearmanr(fC, fT - fC)[0]:.2f} over odors).')
+R.sub('Are the per-odor effects real? The statistics')
+R.table(['test', 'how', 'result'], [
+    ['Is the additive fit better than chance?', 'Permutation: the 120 values of $\\Delta S$ are shuffled across pairs (5,000 times), which '
+     'removes any odor structure, and the additive model is refitted', f'$R^2$ = {r26:.2f} in the data; null mean {null_r2.mean():.2f}, 95th '
+     f'percentile {np.percentile(null_r2, 95):.2f}; p = {p_r2:.4f}' + (' (none of 5,000 shuffles reach it)' if np.sum(null_r2 >= r26) == 0 else '')],
+    ['Which $e_a$ differ from 0?', f'95% bootstrap range over recordings (Figure {R.n_fig}a)', f'{int(sig.sum())} of {NO} odors: '
+     + ', '.join(O[i] for i in np.argsort(e6) if sig[i])],
+    ['Are the $e_a$ reproducible?', 'Split-half: two random halves of the recordings (4 + 5 and 4 + 6), $e_a$ fitted in each, Pearson r '
+     'over odors; 1,000 splits; Spearman–Brown to full data', f'r = {rel_h:.2f} between halves, {rel_f:.2f} for all the data']],
+    title='Statistics for the per-odor effects.',
+    caption=f'With {NO} odors, the additive model has {NO} free parameters for {len(dS)} pairs, so even random numbers give $R^2$ ≈ '
+            f'{NO - 1}/{len(dS) - 1} ≈ {(NO - 1) / (len(dS) - 1):.2f}. That is why the null is needed: {r26:.2f} is far above it.')
+
 # ---------------------------------------------------------------- 5 reliability
 R.section('How reliable these numbers are')
 R.p('The recordings are the unit of resampling everywhere: bootstrap draws resample recordings with replacement within each condition, '
@@ -194,7 +292,9 @@ R.ul([f'**Rank order of similarity.** Over the 120 pairs, $S^{{\\mathrm{{TNT}}}}
       f'lower in {L.pct(rk["fraction of splits with between < both withins"], 1)} of splits. Dividing the between-condition value by the '
       f'within-condition one gives about {rk["half vs half, TNT vs TNT3c"] / np.mean([rk["half vs half, within TNT3c (mean of 1000 splits)"], rk["half vs half, within TNT"]]):.2f}: '
       'the rank correlation expected without measurement noise. Report 09 and the local model use this as the data\'s value.',
-      '**Change per pair.** The split-half reliability of $\\Delta S$ caps any model\'s correlation with it near r = 0.84 (Report 07).',
+      f'**Change per pair.** The split-half reliability of $\\Delta S$ is {TVM["fits"]["threshold 1.0, ORN"]["split-half (recordings) reliability of dS, full-data estimate"]:.2f} '
+      f'(Spearman–Brown, all recordings), which caps any model\'s Pearson r with it near '
+      f'{TVM["fits"]["threshold 1.0, ORN"]["ceiling for r with a model (sqrt of that)"]:.2f} (Report 07 explains why).',
       f'**Duplicates.** No unit is repeated within or across recordings. Units whose nearest neighbour in their own recording is closer than '
       f'expected are rare ({L.pct(CHK["near-duplicate units (own-recording neighbour closer than 1st percentile of other recordings), mean over recordings"]["TNT"]["responsive units"], 1)} '
       f'of responsive TNT units, {L.pct(CHK["near-duplicate units (own-recording neighbour closer than 1st percentile of other recordings), mean over recordings"]["TNT3c"]["responsive units"], 1)} TNT3c).',
@@ -227,7 +327,7 @@ R.fig(fig_rel(), '**a**, Each line is one recording: its 120 pair similarities s
       'recordings of the same condition. It measures how consistent the rank order of pairs is from hemisphere to hemisphere.',
       'Consistency across recordings.')
 R.box('Caveats', ['The units are not matched across recordings or conditions, so every comparison is between condition means.',
-                  'Response units are not stated. Thresholding at 1 assumes the values are on a comparable scale in both genotypes.',
+                  'The responses are FC z-scores. Thresholding at 1 assumes that a z-score of 1 means the same in both genotypes.',
                   'Noise lowers cosine similarity more when responses are small. TNT3c has smaller responses, so part of the rise in TNT may be '
                   'noise. Thresholding at 1 before the cosine gives the same picture (every pair still rises; pattern r 0.94 with the raw change).'], 'caveat')
 R.save()

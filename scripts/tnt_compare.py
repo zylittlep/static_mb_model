@@ -37,10 +37,10 @@ COND = ['TNT3c', 'TNT']
 TH_MAIN, TH_ALT = 1.0, 0.5
 NS = int(os.environ.get('TNT_SHUFFLES', 200))
 NB = 2000
-VERS = ['U', 'C', 'P0', 'P', 'L', 'M0', 'M', 'F0', 'F']
+VERS = ['U', 'C', 'P0', 'P', 'L', 'M0', 'M', 'F0', 'F'] + (['MC'] if abm.REVISION else [])   # MC: revision runs only (2026-11-04)
 NULLS = ['C', 'P', 'M', 'F']
 VLABEL = {'U': 'uniform', 'C': 'per-KC counts', 'P0': 'boutons', 'P': 'boutons per glom.', 'L': 'claws per glom.',
-          'M0': 'U + boutons', 'M': 'U + boutons per glom.', 'F0': 'PN drive', 'F': 'PN drive per glom.'}
+          'M0': 'U + boutons', 'M': 'U + boutons per glom.', 'F0': 'PN drive', 'F': 'PN drive per glom.', 'MC': 'C + boutons per glom.'}
 NLABEL = {'C': 'C: per-KC\ncounts', 'P': 'P: all on\nboutons', 'M': 'M: U + boutons\nat real share', 'F': 'F: PN->APL\ndrive'}
 INK, MUTED, GRID, NAN_C = abm.INK, abm.MUTED, abm.GRID, abm.NAN_C
 CC = {'TNT': '#c8553d', 'TNT3c': '#2a78d6'}
@@ -166,6 +166,10 @@ def run_task(task):
         mk = lambda s: abm.model_y(Wm, Rg, th, s * (1 - f) * gain['U'], s * f * gain['P0'], one, one, pp)
         gain[nm] = abm.calib(lambda s: abm.cl_of(mk(s)).mean(), target)
         Y[nm] = mk(gain[nm])
+    if 'MC' in VERS:     # inhibition on KCs per KC (C) and on boutons per glomerulus (P), at the boutons' synapse share f
+        mkc = lambda s: abm.model_y(Wm, Rg, th, s * (1 - f) * gain['C'], s * f * gain['P'], u, v, p)
+        gain['MC'] = abm.calib(lambda s: abm.cl_of(mkc(s)).mean(), target)
+        Y['MC'] = mkc(gain['MC'])
     for nm, pp in {'F0': oneg, 'F': pf}.items():
         Af = (w * pp) @ Rg / w.sum()
         gain[nm] = abm.calib(lambda a: (X - th - a * Af[None] > 0).mean(0).mean(), target)

@@ -21,7 +21,7 @@ from scipy.stats import spearmanr
 from orn_load import load
 import apl_block_model as abm
 
-OUT = '/mnt/project-files/apl_synapses/odor_weighted/'
+OUT = abm.B + 'odor_weighted/'          # official: odor_weighted/; APL_VARIANT picks the variant folder
 UP = '/mnt/project-files/uploads/hearth/'
 D = {'TNT': load(UP + '2e7fb552-f4ec-49d7-b06f-14ee778f6433'), 'TNT3c': load(UP + '76debf61-257e-4375-b4d8-a02b48c4f62a')}
 O = list(next(iter(D['TNT'].values())).columns)

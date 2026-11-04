@@ -41,9 +41,9 @@ from scipy.cluster.hierarchy import linkage, leaves_list
 from scipy.spatial.distance import squareform
 from scipy.stats import spearmanr, pearsonr
 
-OUTSIDE = os.environ.get('APL_VARIANT', '') == 'outside_roi'
+OUTSIDE = os.environ.get('APL_VARIANT', '') in ('outside_roi', 'claws_v2m2')
 ROOT = '/mnt/project-files/apl_synapses/'
-BASE = ROOT + ('with_outside_ROI_synapses/' if OUTSIDE else '')
+BASE = ROOT + {'outside_roi': 'with_outside_ROI_synapses/', 'claws_v2m2': 'with_outside_ROI_synapses/claws_v2m2/'}.get(os.environ.get('APL_VARIANT', ''), '')
 OUT = BASE + 'apl_geodesic/'
 SK = ROOT + 'data/skeletons/'
 APLS = {'hemibrain R': ('hemibrain', 'APL_R', 'hemibrain_425790257_APL_R.swc'),

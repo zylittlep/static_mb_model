@@ -1,5 +1,8 @@
-"""Report 10: geodesic distance along APL between glomeruli's microglomeruli (apl_geodesic.py)."""
-import sys, json
+"""Report 10: geodesic distance along APL between glomeruli's microglomeruli (apl_geodesic.py).
+Rebuilt 2026-11-04 for Yang's revision: the main numbers now use the corrected calyx and the new claws (APL_VARIANT=claws_v2m2); the
+official-ROI version is compared at the end. Old version in archive_2026-11-03/."""
+import sys, json, os
+os.environ['APL_VARIANT'] = 'claws_v2m2'
 sys.path.insert(0, '/mnt/project-files/apl_synapses/scripts'); sys.path.insert(0, '/mnt/project-files/apl_synapses/scripts/reports')
 import numpy as np, pandas as pd
 import matplotlib.pyplot as plt
@@ -10,12 +13,13 @@ from scipy.spatial import cKDTree
 from scipy.stats import spearmanr
 import report_lib as L
 import apl_geodesic as ag
-L.style()
+L.style(); L.DATE = '2026-11-04'
 F = L.fmt
-GD = L.B + 'apl_geodesic/'
+GD = ag.OUT                                   # with_outside_ROI_synapses/claws_v2m2/apl_geodesic/
+assert 'claws_v2m2' in GD, GD
 P = pd.read_csv(GD + 'APL_geodesic_glomerulus_pairs.csv'); MG = pd.read_csv(GD + 'APL_geodesic_microglomeruli.csv')
 SB = pd.read_csv(GD + 'APL_geodesic_glomerulus_by_subarbor.csv'); SJ = json.load(open(GD + 'APL_geodesic_summary.json'))
-SJo = json.load(open(L.B + 'with_outside_ROI_synapses/apl_geodesic/APL_geodesic_summary.json'))
+SJo = json.load(open(L.B + 'apl_geodesic/APL_geodesic_summary.json'))          # official ROIs, old 2 µm claws
 KEYS = list(ag.APLS); LAMS = [10, 25, 50, 100]
 G = sorted(P.glomerulus_A.unique()); gi = {g: i for i, g in enumerate(G)}
 
@@ -35,14 +39,16 @@ R = L.Report('10', 'How far apart, measured along APL\'s own arbor, are APL\'s s
              'does that imply for how much a non-spiking APL inhibits a glomerulus\'s own KCs versus other glomeruli\'s?',
              inputs=['APL skeletons (SWC): hemibrain v1.2 body 425790257; male CNS v1.0 bodies 10977 (APL_L) and 10540 (APL_R), in `data/skeletons/`',
                      'Calyx APL synapse tables with bouton and claw assignments (Reports 01, 02)', 'Derived PN boutons (Report 02)'],
-             outputs=['`apl_geodesic/APL_geodesic_glomerulus_pairs.csv`, `APL_geodesic_microglomeruli.csv`, `APL_geodesic_glomerulus_by_subarbor.csv`, '
-                      '`APL_geodesic_summary.json`, figures, and `APL_geodesic_notes.md`',
-                      'The same under `with_outside_ROI_synapses/apl_geodesic/` with synapses outside the official ROIs added'],
+             outputs=['`with_outside_ROI_synapses/claws_v2m2/apl_geodesic/`: `APL_geodesic_glomerulus_pairs.csv`, `APL_geodesic_microglomeruli.csv`, '
+                      '`APL_geodesic_glomerulus_by_subarbor.csv`, `APL_geodesic_summary.json` and figures',
+                      'The earlier versions: `apl_geodesic/` (official ROIs, old claws) and `with_outside_ROI_synapses/apl_geodesic/`'],
              scripts=['`scripts/apl_geodesic.py`', '`scripts/reports/r10_geodesic.py` (this report)'])
 R.p('APL does not fire action potentials, so a signal entering it at one synapse fades with distance along its neurites. How strongly an '
     'input in one place inhibits KCs elsewhere then depends on the path length along APL, not on the straight-line distance. Yang asked '
     '(2026-10-23) for this distance between every pair of glomeruli, weighted by synapse counts, for hemibrain and male CNS. This report '
-    'explains how it is computed and what it shows. Numbers are from the official ROIs; the second version is nearly the same (Section 7).')
+    'explains how it is computed and what it shows. Numbers use the corrected calyx (synapses outside the official ROIs added) and the '
+    'new claws (Report 02); the earlier official-ROI version is compared in Section 7.')
+R.box('What changed in this revision (2026-11-04)', ["The main numbers now use the corrected calyx and the new claws; the earlier official-ROI version is compared at the end."], 'plain')
 R.symbols([
     ('s,\\ t', 'Two APL synapses, each placed at the APL skeleton node nearest its APL-side site (APL output: the T-bar; APL input: the PSD)', ''),
     ('d(s, t)', 'Geodesic distance: length of the path between $s$ and $t$ along the APL skeleton', 'µm'),
@@ -70,18 +76,22 @@ R.table(['APL', 'body ID', 'nodes', 'cable length (mm)', 'pieces joined', 'longe
 
 # ---------------------------------------------------------------- 2 synapses
 R.section('Step 2: which synapses belong to a glomerulus')
-R.p('A **microglomerulus** is one PN bouton plus the KC claws whose main bouton it is (the bouton that gives the claw most of its PN '
-    'synapses; Report 02). Its glomerulus is the bouton\'s PN\'s glomerulus, uniglomerular PN types only. The APL synapses on it are:')
+R.p('A **microglomerulus** is one PN bouton plus the KC claws whose main bouton it is. Each new claw belongs to one PN (Report 02), and its '
+    'main bouton is the bouton of that PN that gives it most of its PSDs. The microglomerulus\'s glomerulus is the bouton\'s PN\'s '
+    'glomerulus, uniglomerular PN types only. The APL synapses on it are:')
 R.ul(['APL↔PN synapses on the bouton (partner-side site within 2 µm of the bouton\'s T-bar cluster), both directions;',
-      'APL↔KC synapses on those claws (KC-side site within 2 µm of the claw), both directions.'])
+      'APL↔KC synapses on those claws, both directions, assigned by the new claw rule (the KC-side site joins the claw whose PN\'s PSDs '
+      'are nearest along the KC\'s skeleton, within 8 µm).'])
 rows = []
+_sh = [SJ['apl'][k]['of those, uniglomerular PN glomerulus'] / SJ['apl'][k]['calyx APL synapses'] for k in KEYS]
+SHMG = f'{L.pct(min(_sh))} to {L.pct(max(_sh))}'
 for k in KEYS:
     s = SJ['apl'][k]; d = s['by partner and direction']
     rows.append([k, f'{s["calyx APL synapses"]:,}', f'{s["of those, uniglomerular PN glomerulus"]:,}', f'{d["PN ->APL"]:,}', f'{d["PN APL->"]:,}',
                  f'{d["KC ->APL"]:,}', f'{d["KC APL->"]:,}', s['microglomeruli with an APL synapse']])
 R.table(['APL', 'calyx APL synapses', 'on microglomeruli of a glomerulus', 'PN→APL', 'APL→PN', 'KC→APL', 'APL→KC', 'microglomeruli'], rows,
-        title='Synapses used.', caption='Only about a third of APL\'s calyx synapses sit on a microglomerulus by this rule; the rest are on KC '
-        'dendrites away from claws or on PN axons away from boutons.', num_cols=list(range(1, 8)))
+        title='Synapses used.', caption=f'{SHMG} of APL\'s calyx synapses sit on a microglomerulus of a uniglomerular PN by this rule; the rest '
+        'are on KC dendrites away from claws, on PN axons away from boutons, or on multiglomerular PNs.', num_cols=list(range(1, 8)))
 nG = len(G)
 R.p(f'Glomeruli with at least 20 such synapses in every APL are kept: {nG} glomeruli.')
 
@@ -158,7 +168,8 @@ R.table(['APL', 'sub-arbors (≥ 2%)', 'largest share', 'same sub-arbor: mean di
           L.pct(SJ['apl'][k]['calyx sub-arbors holding >= 2% of these synapses, and their shares']['S1']),
           F(SJ['apl'][k]['sub-arbors: mean geodesic distance (µm) between two synapses in the same / different named sub-arbors'][0], 0),
           F(SJ['apl'][k]['sub-arbors: mean geodesic distance (µm) between two synapses in the same / different named sub-arbors'][1], 0)] for k in KEYS],
-        title='Sub-arbors.', caption='Hemibrain R has one dominant sub-arbor; male CNS L is split into six of similar size.', num_cols=[1, 2, 3, 4])
+        title='Sub-arbors.', caption='The number of sub-arbors and the share of the largest depend on the skeleton, not on the synapse '
+        'tables, apart from the 2% cut.', num_cols=[1, 2, 3, 4])
 
 # ---------------------------------------------------------------- 5 heatmaps
 R.section('Step 5: the glomerulus × glomerulus distances')
@@ -184,6 +195,7 @@ R.fig(fig_heat(), f'Each cell is $D(A, B)$ for glomerulus $A$ (row) and $B$ (col
       'same order everywhere, from average-linkage clustering of the mean of the three APLs\' all-synapse distances. The diagonal is the '
       'same glomerulus.', 'Distance along APL between every pair of glomeruli.')
 med = SJ['weighted mean geodesic distance (µm), all synapses: median over glomerulus pairs (off-diagonal), median of diagonal']
+ASY = {k: float(np.nanmedian(np.abs(MIO[k] - MIO[k].T)[IU])) for k in KEYS}
 spm = SJ['spearman between APLs over glomerulus pairs (all synapses, off-diagonal)']
 ge = SJ['geodesic / euclidean, median over glomerulus pairs; pearson r between them']
 R.ul(['**Long paths.** Median $D$ between different glomeruli: ' + ', '.join(f'{med[k][0]:.0f} µm ({k})' for k in KEYS) + '. That is '
@@ -191,7 +203,7 @@ R.ul(['**Long paths.** Median $D$ between different glomeruli: ' + ', '.join(f'{
       '**Bands, not blocks.** A glomerulus\'s distance to all others mostly tracks how much of it sits in the main sub-arbor, which makes '
       'whole rows and columns light or dark.',
       '**Not conserved.** Over glomerulus pairs, Spearman between APLs: ' + '; '.join(f'{a.replace(" vs ", " vs ")} {v:.2f}' for a, v in spm.items()) + '.',
-      '**Inputs → outputs** is close to the all-synapse version; $A \\to B$ and $B \\to A$ differ by 6–12 µm (median).'])
+      f'**Inputs → outputs** is close to the all-synapse version; $A \\to B$ and $B \\to A$ differ by {min(ASY.values()):.0f}–{max(ASY.values()):.0f} µm (median over pairs).'])
 
 # ---------------------------------------------------------------- 6 self vs cross; passive
 R.section('Step 6: self versus cross, and an illustration with passive decay')
@@ -231,11 +243,12 @@ R.fig(fig_self(), '**a**, Each point is one glomerulus in one APL: its mean dist
       'glomeruli and shaded bands the 25th–75th percentiles. The dotted line at 1 means no preference for self.', 'Self versus cross inhibition.')
 
 # ---------------------------------------------------------------- 7 second version
-R.section('Second version: synapses outside the official ROIs added')
+R.section('Earlier version: official ROIs and the old claws')
 mo = SJo['weighted mean geodesic distance (µm), all synapses: median over glomerulus pairs (off-diagonal), median of diagonal']
-R.p('Following the decision to keep both versions (2026-10-14), the analysis was repeated with synapses outside the official ROIs added '
-    '(Report 02). Median distances between glomeruli: ' + ', '.join(f'{mo[k][0]:.0f} µm ({k})' for k in KEYS) + ' (official: '
-    + ', '.join(f'{med[k][0]:.0f}' for k in KEYS) + ' µm). All files are in `with_outside_ROI_synapses/apl_geodesic/`.')
+R.p('The earlier version of this report used the official ROIs and the old 2 µm claws. Median distances between glomeruli there: '
+    + ', '.join(f'{mo[k][0]:.0f} µm ({k})' for k in KEYS) + ' (now: ' + ', '.join(f'{med[k][0]:.0f}' for k in KEYS) + ' µm). Synapses on '
+    'microglomeruli: ' + ', '.join(f'{SJo["apl"][k]["of those, uniglomerular PN glomerulus"]:,}' for k in KEYS) + ' then, '
+    + ', '.join(f'{SJ["apl"][k]["of those, uniglomerular PN glomerulus"]:,}' for k in KEYS) + ' now (same order). Its files are in `apl_geodesic/`.')
 R.box('Caveats', ['The sub-arbor split depends on the skeleton\'s connectivity. A connection missed by the segmentation, or a false merge, would '
                   'change it, so the sub-arbors are worth checking in neuroglancer before relying on them.',
                   'Synapse counts stand in for synaptic strength, and the passive decay ignores branching and diameter.',

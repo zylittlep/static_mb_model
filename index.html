@@ -102,6 +102,8 @@ footer { color: var(--muted); font-size: 0.9rem; border-top: 1px solid var(--rul
   .reports a { grid-template-columns: 2.4rem 1fr; }
 }
 </style>
+</head>
+<body>
 
 <div class="wrap">
 
@@ -109,18 +111,22 @@ footer { color: var(--muted); font-size: 0.9rem; border-top: 1px solid var(--rul
   <div class="eyebrow">Drosophila mushroom body · calyx · 2026</div>
   <h1>How APL is wired, and what blocking it does to the Kenyon cell odor code</h1>
   <p class="lede">APL is the single large inhibitory neuron of each mushroom body. It receives input from Kenyon cells (KCs) and inhibits them and the projection neuron (PN) boutons. This project maps every APL synapse in four fly connectomes and asks whether that wiring explains how KC odor responses change when APL is blocked.</p>
-  <p class="meta">Recordings: Yang's KC imaging with APL blocked by tetanus toxin (<span class="tnt">TNT</span>) and the control with an inactive toxin (<span class="tnt3c">TNT3c</span>, APL intact). Odor input: Yang's ORN and GH146 PN imaging. Analysis and reports built with Claude.</p>
+  <p class="meta">Recordings: Yang's KC imaging with APL blocked by tetanus toxin (<span class="tnt">TNT</span>) and the control with an inactive toxin (<span class="tnt3c">TNT3c</span>, APL intact), in FC z-scores. Odor input: Yang's ORN and GH146 PN imaging. Analysis and reports built with Claude.</p>
+  <div class="bottomline">
+    <div class="eyebrow">Revised 2026-11-04</div>
+    <p>All reports were rebuilt for Yang's revision list of 2026-11-03. They now use the corrected calyx (synapses just outside the official ROIs added back), new claws found along each KC's skeleton, and the new ORN table. Each report opens with what changed; the <a href="reports/QA_2026-11-03_reports_05-11.html">Q&amp;A page</a> answers the questions on Reports 05–11 with mock examples.</p>
+  </div>
 </header>
 
 <section aria-labelledby="h-findings">
   <h2 id="h-findings">Main findings</h2>
   <ul class="findings">
-    <li><span>Wiring</span><p>KCs are APL's main partner in every connectome, and most KC↔APL synapses are in the lobes, not the calyx. In the calyx, APL↔PN synapses sit almost all on PN boutons, but only 18–27% of KC→APL and 30–49% of APL→KC synapses sit on KC claws (Report 02).</p></li>
-    <li><span>Off-claw synapses</span><p>Traced on ten male CNS KC skeletons, the off-claw calyx synapses sit on the shared dendritic trunk (30%), on claw stalks (21%) and on side branches without a claw (16%), a median 6 µm along the KC from the nearest PN input.</p></li>
+    <li><span>Wiring</span><p>KCs are APL's main partner in every connectome, and most KC↔APL synapses are in the lobes, not the calyx. In the calyx, APL↔PN synapses sit almost all on PN boutons. With the new claws (hemibrain and male CNS), 56–58% of calyx KC→APL and 66–69% of APL→KC synapses sit on KC claws (Report 02).</p></li>
+    <li><span>Off-claw synapses</span><p>Over all 1,901 right-side male CNS KCs, the calyx KC↔APL synapses that are not on claws sit on the shared dendritic trunk (16% of all), on side branches without a claw (12%) and on claw stalks (10%), a median 13 µm along the KC from the nearest PN input (Report 02).</p></li>
     <li><span>Recordings</span><p>With APL blocked, more KCs respond and every odor pair becomes more similar (mean change in cosine similarity 0.18). The order of odor-pair similarities also changes: Spearman ρ between <span class="tnt">TNT</span> and <span class="tnt3c">TNT3c</span> is 0.87, about 0.92 after correcting for noise (Reports 06, 09).</p></li>
-    <li><span>Global APL model</span><p>A KC model with uniform APL feedback, pinned to the recordings, predicts which odor pairs gain similarity (r = 0.46 with ORN input, 0.32 with GH146; the data's noise allows at most about 0.84). Its effect is about half the data's, and it keeps the rank order almost unchanged (ρ 0.97–0.98). Per-KC synapse counts and PN boutons do not beat shuffled wiring (Reports 05, 07, 08).</p></li>
-    <li><span>APL geometry</span><p>APL's calyx arbor splits into sub-arbors that join only through the peduncle and lobes. Along APL, microglomeruli in the same sub-arbor are 48–69 µm apart, those in different sub-arbors 215–356 µm (Report 10).</p></li>
-    <li><span>Local APL models</span><p>If inhibition fades along APL's skeleton (a non-spiking APL), short-range versions predict which pairs change better than a uniform APL (best r 0.58 with ORN input, 0.53 with GH146), and the real wiring beats within-class shuffles in 3 of 4 tests. The rank order still barely changes. Confining APL to its sub-arbors adds no reordering (Reports 11, 12).</p></li>
+    <li><span>Global APL model</span><p>A KC model with uniform APL feedback, pinned to the recordings, predicts which odor pairs gain similarity (r = 0.49 with ORN input, 0.41 with GH146; the data's noise allows at most about 0.84 and 0.80). Its mean effect is 0.44 times the data's with ORN input, and it keeps the rank order almost unchanged (ρ 0.94–0.98 over versions). Per-KC synapse counts and PN bouton weights mostly do not beat shuffled wiring; the exception is per-KC counts with GH146 input (r 0.45 vs 0.37 for shuffles, p = 0.015). Using both together (version MC) gives r 0.49 and 0.44 (Reports 05, 07, 08).</p></li>
+    <li><span>APL geometry</span><p>APL's calyx arbor splits into sub-arbors that join only through the peduncle and lobes. Along APL, two synapses in the same sub-arbor are 48–69 µm apart on average, two in different sub-arbors 219–365 µm (Report 10).</p></li>
+    <li><span>Local APL models</span><p>If inhibition fades along APL's skeleton (a non-spiking APL), short-range versions predict which pairs change better than a uniform APL (best r 0.56 with ORN input, 0.57 with GH146, at λ = 2 µm). The real placement of KCs on APL beats within-class shuffles with GH146 input (p = 0.02), not with ORN (p = 0.32), and reorders odor pairs a little more than shuffles (ρ 0.96 vs 0.98, p = 0.01), still far less than the data (0.87). Confining APL to its sub-arbors adds no reordering (Reports 11, 12).</p></li>
   </ul>
   <div class="bottomline">
     <div class="eyebrow">Where it stands</div>
@@ -135,9 +141,9 @@ footer { color: var(--muted); font-size: 0.9rem; border-top: 1px solid var(--rul
   <div class="part">
     <div class="part-head"><span class="swatch" style="background: var(--data)"></span><h3>Synapse data</h3></div>
     <ul class="reports">
-      <li><a href="reports/00_overview_and_glossary.html"><span class="num">00</span><div><span class="rt">Overview, roadmap and glossary</span><span class="rs">What was done in which order, and what every recurring term means.</span></div></a></li>
+      <li><a href="reports/00_overview_and_glossary.html"><span class="num">00</span><div><span class="rt">Overview, roadmap and glossary</span><span class="rs">What was done in which order, what changed in the revision, and what every recurring term means.</span></div></a></li>
       <li><a href="reports/01_connectome_synapse_tables.html"><span class="num">01</span><div><span class="rt">Connectome synapse tables</span><span class="rs">Every APL synapse in FlyWire, hemibrain, male CNS and BANC, with partner, region and compartment.</span></div></a></li>
-      <li><a href="reports/02_claws_boutons_calyx.html"><span class="num">02</span><div><span class="rt">Claws, boutons and the calyx</span><span class="rs">Finding claws and boutons, placing APL synapses on them, and the version that adds synapses outside the official ROIs.</span></div></a></li>
+      <li><a href="reports/02_claws_boutons_calyx.html"><span class="num">02</span><div><span class="rt">Claws, boutons and the calyx</span><span class="rs">Boutons, the new claws found along each KC's skeleton (compared with the old claws and Prat's counts), where APL synapses sit on the KC, and the corrected calyx.</span></div></a></li>
       <li><a href="reports/03_odor_weighted_maps.html"><span class="num">03</span><div><span class="rt">Odor-weighted maps</span><span class="rs">ORN and GH146 responses attached to each APL synapse through its PN or claw.</span></div></a></li>
     </ul>
   </div>
@@ -146,11 +152,11 @@ footer { color: var(--muted); font-size: 0.9rem; border-top: 1px solid var(--rul
     <div class="part-head"><span class="swatch" style="background: var(--intact)"></span><h3>Model and recordings</h3></div>
     <ul class="reports">
       <li><a href="reports/04_glomerulus_wiring.html"><span class="num">04</span><div><span class="rt">APL wiring per glomerulus</span><span class="rs">The bouton and claw weights the model uses.</span></div></a></li>
-      <li><a href="reports/05_APL_block_model.html"><span class="num">05</span><div><span class="rt">The APL block model</span><span class="rs">KC input from claws, a threshold, and APL feedback solved self-consistently, built step by step.</span></div></a></li>
+      <li><a href="reports/05_APL_block_model.html"><span class="num">05</span><div><span class="rt">The APL block model</span><span class="rs">KC input from claws, a threshold, and APL feedback solved self-consistently, built step by step; with a PN-level step, negative responses and inhibition on both PNs and KCs (version MC).</span></div></a></li>
       <li><a href="reports/06_TNT_TNT3c_data.html"><span class="num">06</span><div><span class="rt">The TNT and TNT3c recordings</span><span class="rs">8 TNT and 11 TNT3c recordings, 16 odors; what blocking APL changes.</span></div></a></li>
       <li><a href="reports/07_model_vs_TNT.html"><span class="num">07</span><div><span class="rt">Model pinned to the recordings</span><span class="rs">How well uniform and wiring-based APL feedback predict the change in odor-pair similarity.</span></div></a></li>
       <li><a href="reports/08_why_feedback_is_uneven.html"><span class="num">08</span><div><span class="rt">Why the effect is uneven across odors</span><span class="rs">Feedback holds down odors that drive many KCs, so pairs of strong odors gain the most.</span></div></a></li>
-      <li><a href="reports/09_rank_order.html"><span class="num">09</span><div><span class="rt">Rank order of odor-pair similarity</span><span class="rs">When inhibition keeps the order of similarities, with toy simulations.</span></div></a></li>
+      <li><a href="reports/09_rank_order.html"><span class="num">09</span><div><span class="rt">Rank order of odor-pair similarity</span><span class="rs">When inhibition keeps the order of similarities, with toy simulations, and the logic of the noise correction.</span></div></a></li>
     </ul>
   </div>
 
@@ -162,19 +168,26 @@ footer { color: var(--muted); font-size: 0.9rem; border-top: 1px solid var(--rul
       <li><a href="reports/12_APL_sub_arbor_compartments.html"><span class="num">12</span><div><span class="rt">APL confined to its sub-arbors</span><span class="rs">No signal crossing between calyx sub-arbors.</span></div></a></li>
     </ul>
   </div>
+
+  <div class="part">
+    <div class="part-head"><span class="swatch" style="background: var(--accent)"></span><h3>Questions and answers</h3></div>
+    <ul class="reports">
+      <li><a href="reports/QA_2026-11-03_reports_05-11.html"><span class="num">Q&amp;A</span><div><span class="rt">Answers to the questions on Reports 05–11</span><span class="rs">Each question from the 2026-11-03 revision list, answered with mock examples.</span></div></a></li>
+    </ul>
+  </div>
 </section>
 
 <section aria-labelledby="h-kc">
   <h2 id="h-kc">Where APL synapses sit on Kenyon cells</h2>
-  <p>Ten typical KCs from the right calyx of the male CNS, spread over the γ, α′β′ and αβ classes. Only the calyx part of each KC is drawn, on the calyx area. Pale orange marks calyx that the official calyx ROI leaves out and that the corrected calyx adds back.</p>
+  <p>Ten typical KCs from the right calyx of the male CNS, spread over the γ, α′β′ and αβ classes, with the new claws. Only the calyx part of each KC is drawn, on the calyx area. Pale orange marks calyx that the official calyx ROI leaves out and that the corrected calyx adds back.</p>
   <figure>
-    <img src="kc_skeletons/KC_skeletons_APL_synapses_calyx.png" alt="Ten Kenyon cell skeletons in the calyx, each in a posterior and a side view, with KC to APL and APL to KC synapses colored by where they sit: on claw, claw stalk, dendritic trunk, or branch without claw." loading="lazy">
+    <img src="kc_skeletons/claws_v2m2/KC_skeletons_APL_synapses_calyx.png" alt="Ten Kenyon cell skeletons in the calyx, each in a posterior and a side view, with KC to APL and APL to KC synapses colored by where they sit: on claw, claw stalk, dendritic trunk, or branch without claw." loading="lazy">
     <figcaption>Circles: KC→APL synapses. Triangles: APL→KC. Color: on claw (green), claw stalk (ochre), dendritic trunk (purple), branch without claw (pink). A black outline marks a synapse outside the official ROIs. Gray dots and dashed rings: the KC's PN inputs and claws. Left of each pair: posterior view (fly's right to the right, dorsal up). Right: side view (anterior to the right).</figcaption>
   </figure>
   <div class="links">
-    <a href="kc_skeletons/KC_skeletons_APL_synapses_3D.html">Rotate them in 3D</a>
-    <a href="kc_skeletons/KC_skeletons_APL_synapses_overview.png">Whole KCs, lobes included</a>
-    <a href="kc_skeletons/KC_skeletons_APL_synapses_calyx.png">Calyx figure at full size</a>
+    <a href="kc_skeletons/claws_v2m2/KC_skeletons_APL_synapses_3D.html">Rotate them in 3D</a>
+    <a href="kc_skeletons/claws_v2m2/KC_skeletons_APL_synapses_overview.png">Whole KCs, lobes included</a>
+    <a href="kc_skeletons/claws_v2m2/KC_skeletons_APL_synapses_calyx.png">Calyx figure at full size</a>
   </div>
 </section>
 
@@ -193,14 +206,16 @@ footer { color: var(--muted); font-size: 0.9rem; border-top: 1px solid var(--rul
   </div>
   <ul class="plain">
     <li>Synaptic weight is the number of T-bar→PSD pairs, as neuPrint "weight" and FlyWire "syn_count".</li>
-    <li>Claws and boutons are clusters of synapse sites within 2 µm; an APL synapse is on a claw or bouton when it lies within 2 µm of one.</li>
-    <li>The male CNS calyx ROI misses the back of the calyx. Every analysis is kept in two versions: official ROIs only, and with synapses just outside the official ROIs added back (male CNS calyx +31%).</li>
+    <li>Boutons are clusters of a PN's T-bars within 2 µm. Claws (since 2026-11-04) are found along each KC's skeleton: its calyx sites are clustered at 8 µm, and each PN with at least 2 PSDs in a cluster gets its own claw. This is done for hemibrain and male CNS, which have KC skeletons; FlyWire and BANC keep the older 2 µm claws.</li>
+    <li>The male CNS calyx ROI misses the back of the calyx. The reports use the corrected calyx, with synapses just outside the official ROIs added back (male CNS calyx +31%); the official-ROI files are kept unchanged.</li>
     <li>Each recording is treated as an independent hemisphere. Odor similarity is cosine similarity of population responses.</li>
   </ul>
 </section>
 
 <footer>
-  <p>Reports dated 2026-10-23 to 2026-10-24; KC skeleton figures 2026-10-29. Public data: FlyWire, neuPrint hemibrain and male CNS releases, BANC.</p>
+  <p>Reports and KC skeleton figures rebuilt 2026-11-04 (first versions 2026-10-23 to 2026-10-29). Public data: FlyWire, neuPrint hemibrain and male CNS releases, BANC.</p>
 </footer>
 
 </div>
+</body>
+</html>

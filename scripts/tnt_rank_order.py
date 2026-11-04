@@ -60,4 +60,4 @@ for rn, R in RESP.items():
     for _, r in T.iterrows():
         OUT += [dict(source='model', responses=rn, mushroom_body=r.mb, comparison='blocked vs intact, uniform feedback (U)', spearman=r.blocked_vs_U),
                 dict(source='model', responses=rn, mushroom_body=r.mb, comparison='blocked vs intact, fixed threshold raise', spearman=r.blocked_vs_fixed)]
-pd.DataFrame(OUT).round(4).to_csv('/mnt/project-files/apl_synapses/odor_weighted/TNT_rank_order.csv', index=False)
+pd.DataFrame(OUT).round(4).to_csv(abm.B + 'odor_weighted/TNT_rank_order.csv', index=False)   # official: odor_weighted/; APL_VARIANT picks the variant folder

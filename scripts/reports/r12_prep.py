@@ -8,7 +8,7 @@ import numpy as np, pandas as pd
 from scipy.spatial import cKDTree
 import apl_compartment_model as acm
 lm, tc, ag = acm.lm, acm.tc, acm.ag
-TAG = '_outside_roi' if os.environ.get('APL_VARIANT', '') == 'outside_roi' else ''
+TAG = {'outside_roi': '_outside_roi', 'claws_v2m2': '_claws_v2m2'}.get(os.environ.get('APL_VARIANT', ''), '')
 OD = '/mnt/project-files/apl_synapses/reports/data/'
 VIEW = {'hemibrain': lambda P: (-P[:, 0], -P[:, 2]), 'malecns': lambda P: (-P[:, 0], -P[:, 1])}     # posterior view, as Report 10
 rng = np.random.default_rng(12)
